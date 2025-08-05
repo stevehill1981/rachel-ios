@@ -22,9 +22,9 @@ struct GameView: View {
                 
                 // Game table area
                 VStack {
-                    // Opponent area
-                    OpponentAreaView(engine: engine)
-                        .frame(maxHeight: 200)
+                    // All players
+                    PlayersView(engine: engine)
+                        .frame(maxHeight: 170)
                     
                     Spacer()
                     

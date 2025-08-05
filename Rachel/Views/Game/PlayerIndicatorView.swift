@@ -12,35 +12,64 @@ struct PlayerIndicatorView: View {
     let isCurrentPlayer: Bool
     let cardCount: Int
     
+    var isHumanPlayer: Bool {
+        !player.isAI
+    }
+    
     var body: some View {
-        VStack(spacing: 8) {
-            // Player avatar/icon
-            Circle()
-                .fill(isCurrentPlayer ? Color.yellow : Color.gray.opacity(0.3))
-                .frame(width: 60, height: 60)
-                .overlay(
-                    Text(String(player.name.prefix(1)))
-                        .font(.title2)
-                        .fontWeight(.bold)
-                        .foregroundColor(.white)
-                )
+        VStack(spacing: 6) {
+            // Player avatar/icon with card count badge
+            ZStack {
+                Circle()
+                    .fill(avatarColor)
+                    .frame(width: 55, height: 55)
+                
+                if isCurrentPlayer {
+                    Circle()
+                        .strokeBorder(Color.yellow, lineWidth: 3)
+                        .frame(width: 62, height: 62)
+                }
+                
+                Text(String(player.name.prefix(1)))
+                    .font(.title3)
+                    .fontWeight(.bold)
+                    .foregroundColor(.white)
+                
+                // Card count badge
+                Text("\(cardCount)")
+                    .font(.caption2)
+                    .fontWeight(.bold)
+                    .foregroundColor(.white)
+                    .frame(width: 22, height: 22)
+                    .background(
+                        Circle()
+                            .fill(cardCount == 1 ? Color.red : Color.black)
+                            .overlay(
+                                Circle()
+                                    .strokeBorder(Color.white, lineWidth: 1.5)
+                            )
+                    )
+                    .offset(x: 20, y: -20)
+            }
             
             // Player name
             Text(player.name)
                 .font(.caption)
+                .fontWeight(isHumanPlayer ? .semibold : .regular)
                 .foregroundColor(.white)
-            
-            // Card count
-            HStack(spacing: 4) {
-                Image(systemName: "rectangle.fill")
-                    .font(.caption2)
-                Text("\(cardCount)")
-                    .font(.caption)
-            }
-            .foregroundColor(.white.opacity(0.8))
         }
-        .scaleEffect(isCurrentPlayer ? 1.1 : 1.0)
+        .scaleEffect(isCurrentPlayer ? 1.15 : 1.0)
         .animation(.easeInOut(duration: 0.3), value: isCurrentPlayer)
+    }
+    
+    private var avatarColor: Color {
+        if isHumanPlayer {
+            return Color.blue
+        } else if isCurrentPlayer {
+            return Color.orange
+        } else {
+            return Color.gray
+        }
     }
 }
 
