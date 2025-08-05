@@ -16,9 +16,9 @@ struct GameView: View {
             // Background
             BaizeBackground()
             
-            VStack {
+            VStack(spacing: 0) {
                 // Top bar with exit button
-                TopBarView(onExit: onExit)
+                TopBarView(engine: engine, onExit: onExit)
                 
                 // Game table area
                 VStack {
@@ -26,9 +26,12 @@ struct GameView: View {
                     OpponentAreaView(engine: engine)
                         .frame(maxHeight: 200)
                     
+                    Spacer()
+                    
                     // Center play area
                     CenterPlayAreaView(engine: engine)
-                        .frame(height: 200)
+                    
+                    Spacer()
                     
                     // Player's hand
                     PlayerHandView(engine: engine)
@@ -37,25 +40,67 @@ struct GameView: View {
                 .padding()
             }
         }
+        .ignoresSafeArea(.container, edges: .top) // Let background extend under status bar
     }
 }
 
 struct TopBarView: View {
+    @ObservedObject var engine: GameEngine
     let onExit: () -> Void
     
+    var turnNumber: Int {
+        // Calculate turn number based on how many cards have been played
+        engine.state.discardPile.count
+    }
+    
     var body: some View {
-        HStack {
-            Button("Exit") {
-                onExit()
+        ZStack {
+            // Background that extends to top edge
+            VStack(spacing: 0) {
+                Color.black
+                    .frame(height: 50) // Extra height to cover safe area
+                Rectangle()
+                    .fill(Color.black)
+                    .overlay(
+                        Rectangle()
+                            .strokeBorder(Color.gray.opacity(0.1), lineWidth: 0.5)
+                    )
+                    .shadow(color: Color.black.opacity(0.3), radius: 4, x: 0, y: 2)
             }
-            .padding()
-            .foregroundColor(.white)
-            .background(Color.red.opacity(0.8))
-            .cornerRadius(8)
+            .ignoresSafeArea(edges: .top)
             
-            Spacer()
+            // Content
+            HStack(spacing: 0) {
+                // Turn counter
+                HStack(spacing: 6) {
+                    Image(systemName: "arrow.trianglehead.clockwise")
+                        .font(.caption)
+                    Text("Turn \(turnNumber)")
+                        .font(.footnote)
+                        .fontWeight(.semibold)
+                }
+                .foregroundColor(.white)
+                .padding(.leading, 20)
+                
+                Spacer()
+                
+                // Exit button
+                Button(action: onExit) {
+                    HStack(spacing: 6) {
+                        Text("Exit")
+                            .font(.footnote)
+                            .fontWeight(.semibold)
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.caption)
+                    }
+                    .foregroundColor(.white)
+                    .padding(.trailing, 20)
+                }
+            }
+            .padding(.vertical, 12)
+            .padding(.top, 8) // Position content below safe area
         }
-        .padding()
+        .frame(height: 54) // Taller to fully cover Dynamic Island
     }
 }
 
