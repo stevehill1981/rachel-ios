@@ -28,7 +28,7 @@ struct DecorativeCardsView: View {
         ZStack {
             // Back card
             CardView(card: cards[0])
-                .frame(width: 60, height: 85)
+                .frame(height: 84)
                 .scaleEffect(scale1)
                 .rotationEffect(.degrees(rotation1))
                 .offset(offset1)
@@ -37,7 +37,7 @@ struct DecorativeCardsView: View {
             
             // Middle card
             CardView(card: cards[1])
-                .frame(width: 60, height: 85)
+                .frame(height: 84)
                 .scaleEffect(scale2)
                 .rotationEffect(.degrees(rotation2))
                 .offset(offset2)
@@ -46,7 +46,7 @@ struct DecorativeCardsView: View {
             
             // Front card
             CardView(card: cards[2])
-                .frame(width: 60, height: 85)
+                .frame(height: 84)
                 .scaleEffect(scale3)
                 .rotationEffect(.degrees(rotation3))
                 .offset(offset3)

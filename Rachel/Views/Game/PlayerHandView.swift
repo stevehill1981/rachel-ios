@@ -55,15 +55,36 @@ struct TurnIndicatorView: View {
     let currentPlayerName: String
     
     var body: some View {
-        if isPlayerTurn {
-            Text("Your Turn")
-                .font(.headline)
-                .foregroundColor(.yellow)
-        } else {
-            Text("\(currentPlayerName)'s Turn")
-                .font(.headline)
-                .foregroundColor(.white.opacity(0.7))
+        HStack(spacing: 8) {
+            if isPlayerTurn {
+                Image(systemName: "hand.point.up.fill")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundColor(.yellow)
+                Text("Your Turn")
+                    .font(.system(size: 18, weight: .semibold, design: .rounded))
+                    .foregroundColor(.yellow)
+            } else {
+                Image(systemName: "clock.fill")
+                    .font(.system(size: 16))
+                    .foregroundColor(.orange)
+                Text("\(currentPlayerName)'s Turn")
+                    .font(.system(size: 16, weight: .medium, design: .rounded))
+                    .foregroundColor(.white.opacity(0.8))
+            }
         }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .background(
+            RoundedRectangle(cornerRadius: 20)
+                .fill(isPlayerTurn ? Color.yellow.opacity(0.1) : Color.white.opacity(0.05))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20)
+                        .strokeBorder(
+                            isPlayerTurn ? Color.yellow.opacity(0.3) : Color.white.opacity(0.1),
+                            lineWidth: 1
+                        )
+                )
+        )
     }
 }
 
@@ -73,22 +94,57 @@ struct HandCardsView: View {
     let canPlayCard: (Card) -> Bool
     let onCardTap: (Int) -> Void
     
+    @State private var selectedCardIndex: Int? = nil
+    
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: -20) {
+            HStack(spacing: -25) {
                 ForEach(Array(cards.enumerated()), id: \.element.id) { index, card in
+                    let canPlay = isPlayerTurn && canPlayCard(card)
+                    let isSelected = selectedCardIndex == index
+                    
                     CardView(card: card)
-                        .frame(width: 70, height: 100)
-                        .offset(y: isPlayerTurn && canPlayCard(card) ? -10 : 0)
+                        .frame(height: 91)
+                        .scaleEffect(isSelected ? 1.05 : (canPlay ? 1.0 : 0.95))
+                        .offset(y: canPlay ? -12 : (isSelected ? -8 : 0))
+                        .shadow(
+                            color: canPlay ? .yellow.opacity(0.3) : .black.opacity(0.2),
+                            radius: canPlay ? 6 : 3,
+                            x: 0,
+                            y: canPlay ? 4 : 2
+                        )
+                        .overlay(
+                            canPlay ? 
+                            RoundedRectangle(cornerRadius: 10)
+                                .strokeBorder(Color.yellow.opacity(0.4), lineWidth: 2)
+                            : nil
+                        )
+                        .zIndex(canPlay ? 1 : 0)
                         .onTapGesture {
-                            onCardTap(index)
+                            if isPlayerTurn {
+                                selectedCardIndex = index
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                    onCardTap(index)
+                                    selectedCardIndex = nil
+                                }
+                            }
                         }
                         .disabled(!isPlayerTurn)
-                        .animation(.easeInOut(duration: 0.2), value: isPlayerTurn && canPlayCard(card))
+                        .animation(.easeInOut(duration: 0.25), value: canPlay)
+                        .animation(.easeInOut(duration: 0.15), value: isSelected)
                 }
             }
-            .padding(.horizontal, 40)
+            .padding(.horizontal, 50)
         }
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color.black.opacity(0.1))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .strokeBorder(Color.white.opacity(0.1), lineWidth: 1)
+                )
+        )
+        .padding(.horizontal, 10)
     }
 }
 

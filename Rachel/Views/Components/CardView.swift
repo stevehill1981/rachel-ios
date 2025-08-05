@@ -12,24 +12,37 @@ struct CardView: View {
     
     var body: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 8)
-                .fill(Color.white)
-                .shadow(radius: 3)
+            // Card background
+            RoundedRectangle(cornerRadius: 6)
+                .fill(
+                    LinearGradient(
+                        colors: [Color.white, Color(white: 0.98)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
             
-            RoundedRectangle(cornerRadius: 8)
-                .strokeBorder(Color.gray.opacity(0.3), lineWidth: 1)
+            // Card border
+            RoundedRectangle(cornerRadius: 6)
+                .strokeBorder(Color.gray.opacity(0.2), lineWidth: 0.5)
             
-            VStack(spacing: 4) {
-                Text(card.rank.display)
-                    .font(.system(size: 24, weight: .bold, design: .rounded))
-                    .foregroundColor(card.suit.isRed ? .red : .black)
-                
-                Text(card.suit.display)
-                    .font(.system(size: 20))
-            }
+            // Just the SVG card face (includes corners and center)
+            centerSymbols
         }
+        .aspectRatio(5/7, contentMode: .fit)
+    }
+    
+    @ViewBuilder
+    var centerSymbols: some View {
+        Image("\(card.suit.assetName)-\(card.rank.assetName)")
+            .resizable()
+            .aspectRatio(contentMode: .fit)
+            .padding(2)
+            .clipShape(RoundedRectangle(cornerRadius: 6))
     }
 }
+
 
 // Add display properties to Rank
 extension Rank {
@@ -39,7 +52,35 @@ extension Rank {
         case .king: return "K"
         case .queen: return "Q"
         case .jack: return "J"
-        default: return "\(rawValue)"
+        default: return rawValue
+        }
+    }
+    
+    var assetName: String {
+        switch self {
+        case .ace: return "ace"
+        case .king: return "king"
+        case .queen: return "queen"
+        case .jack: return "jack"
+        default: return rawValue
+        }
+    }
+    
+    var numericValue: Int {
+        switch self {
+        case .two: return 2
+        case .three: return 3
+        case .four: return 4
+        case .five: return 5
+        case .six: return 6
+        case .seven: return 7
+        case .eight: return 8
+        case .nine: return 9
+        case .ten: return 10
+        case .jack: return 11
+        case .queen: return 12
+        case .king: return 13
+        case .ace: return 1
         }
     }
 }
@@ -55,6 +96,31 @@ extension Suit {
         }
     }
     
+    var symbol: String {
+        switch self {
+        case .hearts: return "♥"
+        case .diamonds: return "♦"
+        case .clubs: return "♣"
+        case .spades: return "♠"
+        }
+    }
+    
+    var assetName: String {
+        switch self {
+        case .hearts: return "hearts"
+        case .diamonds: return "diamonds"
+        case .clubs: return "clubs"
+        case .spades: return "spades"
+        }
+    }
+    
+    var color: Color {
+        switch self {
+        case .hearts, .diamonds: return .red
+        case .clubs, .spades: return .black
+        }
+    }
+    
     var isRed: Bool {
         switch self {
         case .hearts, .diamonds: return true
@@ -64,11 +130,61 @@ extension Suit {
 }
 
 #Preview {
-    HStack(spacing: 20) {
-        CardView(card: Card(rank: .ace, suit: .hearts))
-        CardView(card: Card(rank: .king, suit: .spades))
-        CardView(card: Card(rank: .two, suit: .diamonds))
+    ScrollView {
+        VStack(spacing: 16) {
+            ForEach(Suit.allCases, id: \.self) { suit in
+                VStack(spacing: 8) {
+                    Text("\(suit.symbol) \(suit.rawValue)")
+                        .foregroundColor(.white)
+                        .font(.headline)
+                    
+                    // First row: 2, 3, 4, 5
+                    HStack(spacing: 8) {
+                        CardView(card: Card(rank: .two, suit: suit))
+                            .frame(height: 80)
+                        CardView(card: Card(rank: .three, suit: suit))
+                            .frame(height: 80)
+                        CardView(card: Card(rank: .four, suit: suit))
+                            .frame(height: 80)
+                        CardView(card: Card(rank: .five, suit: suit))
+                            .frame(height: 80)
+                    }
+                    
+                    // Second row: 6, 7, 8, 9
+                    HStack(spacing: 8) {
+                        CardView(card: Card(rank: .six, suit: suit))
+                            .frame(height: 80)
+                        CardView(card: Card(rank: .seven, suit: suit))
+                            .frame(height: 80)
+                        CardView(card: Card(rank: .eight, suit: suit))
+                            .frame(height: 80)
+                        CardView(card: Card(rank: .nine, suit: suit))
+                            .frame(height: 80)
+                    }
+                    
+                    // Third row: 10, J, Q, K
+                    HStack(spacing: 8) {
+                        CardView(card: Card(rank: .ten, suit: suit))
+                            .frame(height: 80)
+                        CardView(card: Card(rank: .jack, suit: suit))
+                            .frame(height: 80)
+                        CardView(card: Card(rank: .queen, suit: suit))
+                            .frame(height: 80)
+                        CardView(card: Card(rank: .king, suit: suit))
+                            .frame(height: 80)
+                    }
+                    
+                    // Fourth row: A (centered)
+                    HStack(spacing: 8) {
+                        Spacer()
+                        CardView(card: Card(rank: .ace, suit: suit))
+                            .frame(height: 80)
+                        Spacer()
+                    }
+                }
+            }
+        }
+        .padding()
     }
-    .padding()
     .background(BaizeBackground())
 }

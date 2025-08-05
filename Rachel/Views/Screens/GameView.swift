@@ -26,10 +26,20 @@ struct GameView: View {
                     PlayersView(engine: engine)
                         .frame(maxHeight: 170)
                     
+                    // Game info below players
+                    GameInfoView(
+                        pendingPickups: engine.state.pendingPickups,
+                        skipNextPlayer: engine.state.pendingSkips > 0
+                    )
+                    
                     Spacer()
                     
-                    // Center play area
-                    CenterPlayAreaView(engine: engine)
+                    // Center play area (draw and discard only)
+                    HStack {
+                        Spacer()
+                        CenterCardAreaView(engine: engine)
+                        Spacer()
+                    }
                     
                     Spacer()
                     

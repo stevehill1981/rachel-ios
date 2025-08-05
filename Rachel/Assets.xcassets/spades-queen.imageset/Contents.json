@@ -1,0 +1,15 @@
+{
+  "images" : [
+    {
+      "filename" : "SPADE-12-QUEEN.pdf",
+      "idiom" : "universal"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  },
+  "properties" : {
+    "preserves-vector-representation" : true
+  }
+}
