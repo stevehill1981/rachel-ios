@@ -12,6 +12,17 @@ struct GameEngine {
         self.state = GameState(players: players)
     }
     
+    // Test helper
+    #if DEBUG
+    init(state: GameState) {
+        self.state = state
+    }
+    
+    mutating func updateState(_ closure: (inout GameState) -> Void) {
+        closure(&state)
+    }
+    #endif
+    
     // MARK: - Game Setup
     
     mutating func dealCards(cardsPerPlayer: Int = 7) {
@@ -59,14 +70,7 @@ struct GameEngine {
     // MARK: - Turn Management
     
     mutating func endTurn() {
-        // Handle pending pickups if player didn't counter them
-        if state.pendingPickups > 0 {
-            pickupCards(count: state.pendingPickups)
-            state.pendingPickups = 0
-            state.pendingPickupType = nil
-        }
-        
-        // Clear nominated suit
+        // Clear turn state
         state.nominatedSuit = nil
         state.needsSuitNomination = false
         
@@ -85,8 +89,32 @@ struct GameEngine {
             moveToNextPlayer()
         }
         
+        // Check if next player must pick up (no valid counters available)
+        if state.pendingPickups > 0 {
+            if !playerHasValidMove() {
+                // No valid moves, must pick up
+                pickupCards(count: state.pendingPickups)
+                state.pendingPickups = 0
+                state.pendingPickupType = nil
+            }
+            // If they have valid moves, they MUST play one on their turn
+        }
+        
         // Check if game should end
         checkForGameEnd()
+    }
+    
+    // Check if current player has any valid moves
+    func playerHasValidMove() -> Bool {
+        guard let topCard = state.discardPile.last else { return false }
+        let currentPlayer = state.players[state.currentPlayerIndex]
+        
+        for card in currentPlayer.hand.cards {
+            if GameRules.canPlay(card: card, on: topCard, gameState: state) {
+                return true
+            }
+        }
+        return false
     }
     
     mutating func nominateSuit(_ suit: Suit) {
@@ -98,6 +126,11 @@ struct GameEngine {
     // MARK: - Private Helpers
     
     private mutating func moveToNextPlayer() {
+        // Safety check: if all players are finished, don't loop
+        if state.finishedPlayerIndices.count >= state.players.count {
+            return
+        }
+        
         repeat {
             if state.direction == .clockwise {
                 state.currentPlayerIndex = (state.currentPlayerIndex + 1) % state.players.count

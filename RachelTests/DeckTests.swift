@@ -65,7 +65,7 @@ final class DeckTests: XCTestCase {
         
         // For a more robust test, we could check that cards aren't in perfect suit/rank order
         var inPerfectOrder = true
-        let firstCard = deck1.cards.first!
+        _ = deck1.cards.first!
         
         for (index, suit) in Suit.allCases.enumerated() {
             for (rankIndex, rank) in Rank.allCases.enumerated() {

@@ -8,6 +8,17 @@
 struct Hand {
     private(set) var cards: [Card] = []
     
+    init() {
+        self.cards = []
+    }
+    
+    // Test helper - only use in tests
+    #if DEBUG
+    init(cards: [Card]) {
+        self.cards = cards
+    }
+    #endif
+    
     mutating func addCard(_ card: Card) {
         cards.append(card)
     }
@@ -18,6 +29,10 @@ struct Hand {
         }
         
         return cards.remove(at: index)
+    }
+    
+    mutating func removeAllCards() {
+        cards.removeAll()
     }
     
     var count: Int {
