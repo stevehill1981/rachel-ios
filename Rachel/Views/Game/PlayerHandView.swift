@@ -9,6 +9,7 @@ import SwiftUI
 
 struct PlayerHandView: View {
     @ObservedObject var engine: GameEngine
+    @State private var selectedCardIndices: [Int] = []
     
     var currentPlayer: Player? {
         guard engine.state.currentPlayerIndex < engine.state.players.count else { return nil }
@@ -39,11 +40,20 @@ struct PlayerHandView: View {
                     canPlayCard: { card in
                         engine.canPlay(card: card, playerIndex: 0)
                     },
-                    onCardTap: { index in
-                        if isPlayerTurn {
+                    selectedIndices: $selectedCardIndices,
+                    onPlayCards: {
+                        // Play all selected cards in order
+                        let sortedIndices = selectedCardIndices.sorted(by: >)  // Play from highest index first
+                        for index in sortedIndices {
                             _ = engine.playCard(at: index, by: 0)
                         }
-                    }
+                        selectedCardIndices = []
+                    },
+                    onDrawCard: {
+                        engine.drawCard()
+                        selectedCardIndices = []  // Clear selection after drawing
+                    },
+                    pendingPickups: engine.state.pendingPickups
                 )
             }
         }
@@ -92,40 +102,140 @@ struct HandCardsView: View {
     let cards: [Card]
     let isPlayerTurn: Bool
     let canPlayCard: (Card) -> Bool
-    let onCardTap: (Int) -> Void
+    @Binding var selectedIndices: [Int]
+    let onPlayCards: () -> Void
+    let onDrawCard: () -> Void
+    let pendingPickups: Int
     
-    @State private var selectedCardIndex: Int? = nil
+    var hasPlayableCards: Bool {
+        cards.contains { canPlayCard($0) }
+    }
+    
+    var buttonState: ButtonState {
+        if !selectedIndices.isEmpty {
+            return .playCards(selectedIndices.count)
+        } else if pendingPickups > 0 {
+            return .drawPendingCards(pendingPickups)
+        } else if !hasPlayableCards {
+            return .drawCard
+        } else {
+            return .selectCards
+        }
+    }
+    
+    enum ButtonState {
+        case playCards(Int)
+        case drawPendingCards(Int)
+        case drawCard
+        case selectCards
+        
+        var text: String {
+            switch self {
+            case .playCards(let count):
+                return "Play \(count) Card\(count == 1 ? "" : "s")"
+            case .drawPendingCards(let count):
+                return "Draw \(count) Card\(count == 1 ? "" : "s")"
+            case .drawCard:
+                return "Draw Card"
+            case .selectCards:
+                return "Select Cards"
+            }
+        }
+        
+        var icon: String {
+            switch self {
+            case .playCards:
+                return "play.fill"
+            case .drawPendingCards, .drawCard:
+                return "plus.rectangle.fill"
+            case .selectCards:
+                return "hand.point.up.fill"
+            }
+        }
+        
+        var color: Color {
+            switch self {
+            case .playCards:
+                return .green
+            case .drawPendingCards:
+                return .red
+            case .drawCard:
+                return .orange
+            case .selectCards:
+                return .gray
+            }
+        }
+        
+        var isEnabled: Bool {
+            switch self {
+            case .selectCards:
+                return false
+            default:
+                return true
+            }
+        }
+    }
     
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: -25) {
+                Spacer(minLength: 0)
                 ForEach(Array(cards.enumerated()), id: \.element.id) { index, card in
                     let canPlay = isPlayerTurn && canPlayCard(card)
-                    let isSelected = selectedCardIndex == index
+                    let isSelected = selectedIndices.contains(index)
                     
-                    CardView(card: card)
-                        .frame(height: 91)
-                        .scaleEffect(isSelected ? 1.05 : (canPlay ? 1.0 : 0.95))
-                        .offset(y: canPlay ? -12 : (isSelected ? -8 : 0))
-                        .shadow(
-                            color: canPlay ? .yellow.opacity(0.3) : .black.opacity(0.2),
-                            radius: canPlay ? 6 : 3,
-                            x: 0,
-                            y: canPlay ? 4 : 2
-                        )
-                        .overlay(
-                            canPlay ? 
-                            RoundedRectangle(cornerRadius: 10)
+                    // Check if this card can be added to current selection
+                    let canAddToSelection: Bool = {
+                        if selectedIndices.isEmpty {
+                            // First card must be playable (matches top card by suit or rank)
+                            return canPlay
+                        } else {
+                            // Subsequent cards must match the rank of the first selected card
+                            let firstSelectedIndex = selectedIndices.first!
+                            let firstSelectedCard = cards[firstSelectedIndex]
+                            return card.rank == firstSelectedCard.rank
+                        }
+                    }()
+                    
+                    ZStack {
+                        CardView(card: card)
+                            .frame(height: 91)
+                        
+                        if !canAddToSelection {
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(Color.gray.opacity(0.5))
+                                .frame(height: 91)
+                                .aspectRatio(5/7, contentMode: .fit)
+                        }
+                        
+                        if isSelected {
+                            RoundedRectangle(cornerRadius: 6)
+                                .strokeBorder(Color.green.opacity(0.6), lineWidth: 3)
+                                .frame(height: 91)
+                                .aspectRatio(5/7, contentMode: .fit)
+                        } else if canAddToSelection {
+                            RoundedRectangle(cornerRadius: 6)
                                 .strokeBorder(Color.yellow.opacity(0.4), lineWidth: 2)
-                            : nil
-                        )
-                        .zIndex(canPlay ? 1 : 0)
+                                .frame(height: 91)
+                                .aspectRatio(5/7, contentMode: .fit)
+                        }
+                    }
+                    .scaleEffect(isSelected ? 1.05 : (canPlay ? 1.0 : 0.95))
+                    .offset(y: isSelected ? -20 : 0)
+                    .shadow(
+                        color: canPlay ? .yellow.opacity(0.3) : .black.opacity(0.1),
+                        radius: canPlay ? 6 : 2,
+                        x: 0,
+                        y: canPlay ? 4 : 1
+                    )
                         .onTapGesture {
                             if isPlayerTurn {
-                                selectedCardIndex = index
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                                    onCardTap(index)
-                                    selectedCardIndex = nil
+                                if isSelected {
+                                    // Deselect if already selected
+                                    selectedIndices.removeAll { $0 == index }
+                                } else if canAddToSelection {
+                                    // Add to selection if valid
+                                    selectedIndices.append(index)
                                 }
                             }
                         }
@@ -133,18 +243,49 @@ struct HandCardsView: View {
                         .animation(.easeInOut(duration: 0.25), value: canPlay)
                         .animation(.easeInOut(duration: 0.15), value: isSelected)
                 }
+                Spacer(minLength: 0)
+            }
+            .onChange(of: cards.count) { _ in
+                selectedIndices = []  // Clear selection when hand changes
             }
             .padding(.horizontal, 50)
+            .padding(.top, 30)
+            .padding(.bottom, 8)
         }
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color.black.opacity(0.1))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .strokeBorder(Color.white.opacity(0.1), lineWidth: 1)
-                )
-        )
         .padding(.horizontal, 10)
+        
+        // Action button (always visible to prevent layout shift)
+        Button(action: {
+            switch buttonState {
+            case .playCards:
+                onPlayCards()
+            case .drawPendingCards, .drawCard:
+                onDrawCard()
+            case .selectCards:
+                break // No action for disabled state
+            }
+        }) {
+            HStack(spacing: 8) {
+                Image(systemName: buttonState.icon)
+                    .font(.system(size: 16, weight: .semibold))
+                
+                Text(buttonState.text)
+                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+            }
+            .foregroundColor(.white)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 12)
+            .background(
+                RoundedRectangle(cornerRadius: 25)
+                    .fill(buttonState.color)
+                    .shadow(
+                        color: buttonState.isEnabled ? buttonState.color.opacity(0.3) : .clear,
+                        radius: 6, x: 0, y: 3
+                    )
+            )
+        }
+        .disabled(!buttonState.isEnabled)
+        .padding(.top, 10)
     }
 }
 

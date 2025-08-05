@@ -45,7 +45,6 @@ struct GameView: View {
                     
                     // Player's hand
                     PlayerHandView(engine: engine)
-                        .frame(maxHeight: 250)
                 }
                 .padding()
             }
