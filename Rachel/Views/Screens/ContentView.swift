@@ -8,17 +8,16 @@
 import SwiftUI
 
 struct ContentView: View {
-    @State private var gameEngine: GameEngine?
+    @StateObject private var gameEngine = GameEngine(players: [])
+    @State private var isGameActive = false
     @State private var showCustomGame = false
     
     var body: some View {
-        if let engine = gameEngine {
-            // TODO: Show game view
-            Text("Game is running!")
-                .onTapGesture {
-                    // Reset game
-                    gameEngine = nil
-                }
+        if isGameActive {
+            GameView(engine: gameEngine) {
+                // Exit game
+                isGameActive = false
+            }
         } else if showCustomGame {
             // TODO: Show custom game setup
             Text("Custom Game Setup")
@@ -45,11 +44,13 @@ struct ContentView: View {
             Player(id: "4", name: "Jamie", isAI: true)
         ]
         
-        // Create and setup game
-        var engine = GameEngine(players: players)
-        engine.dealCards()
+        // Setup game with new players
+        gameEngine.updateState { state in
+            state = GameState(players: players)
+        }
+        gameEngine.dealCards()
         
-        gameEngine = engine
+        isGameActive = true
     }
 }
 

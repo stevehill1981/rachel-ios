@@ -5,8 +5,10 @@
 //  Created by Steve Hill on 05/08/2025.
 //
 
-struct GameEngine {
-    private(set) var state: GameState
+import SwiftUI
+
+class GameEngine: ObservableObject {
+    @Published private(set) var state: GameState
     
     init(players: [Player]) {
         self.state = GameState(players: players)
@@ -18,14 +20,14 @@ struct GameEngine {
         self.state = state
     }
     
-    mutating func updateState(_ closure: (inout GameState) -> Void) {
+    func updateState(_ closure: (inout GameState) -> Void) {
         closure(&state)
     }
     #endif
     
     // MARK: - Game Setup
     
-    mutating func dealCards(cardsPerPlayer: Int = 7) {
+    func dealCards(cardsPerPlayer: Int = 7) {
         for _ in 0..<cardsPerPlayer {
             for playerIndex in state.players.indices {
                 if let card = state.deck.deal() {
@@ -44,7 +46,18 @@ struct GameEngine {
     
     // MARK: - Playing Cards
     
-    mutating func playCard(at cardIndex: Int, by playerIndex: Int) -> Bool {
+    func drawCard() {
+        guard state.currentPlayerIndex == 0 else { return } // Only human player can draw
+        pickupCards(count: 1)
+    }
+    
+    func canPlay(card: Card, playerIndex: Int) -> Bool {
+        guard playerIndex == state.currentPlayerIndex else { return false }
+        guard let topCard = state.discardPile.last else { return false }
+        return GameRules.canPlay(card: card, on: topCard, gameState: state)
+    }
+    
+    func playCard(at cardIndex: Int, by playerIndex: Int) -> Bool {
         guard playerIndex == state.currentPlayerIndex else { return false }
         guard cardIndex >= 0 && cardIndex < state.players[playerIndex].hand.cards.count else { return false }
         guard let topCard = state.discardPile.last else { return false }
@@ -69,7 +82,7 @@ struct GameEngine {
     
     // MARK: - Turn Management
     
-    mutating func endTurn() {
+    func endTurn() {
         // Clear turn state
         state.nominatedSuit = nil
         state.needsSuitNomination = false
@@ -117,7 +130,7 @@ struct GameEngine {
         return false
     }
     
-    mutating func nominateSuit(_ suit: Suit) {
+    func nominateSuit(_ suit: Suit) {
         guard state.needsSuitNomination else { return }
         state.nominatedSuit = suit
         state.needsSuitNomination = false
@@ -125,7 +138,7 @@ struct GameEngine {
     
     // MARK: - Private Helpers
     
-    private mutating func moveToNextPlayer() {
+    private func moveToNextPlayer() {
         // Safety check: if all players are finished, don't loop
         if state.finishedPlayerIndices.count >= state.players.count {
             return
@@ -141,7 +154,7 @@ struct GameEngine {
         // Skip players who have already finished
     }
     
-    private mutating func pickupCards(count: Int) {
+    private func pickupCards(count: Int) {
         for _ in 0..<count {
             if let card = state.deck.deal() {
                 state.players[state.currentPlayerIndex].hand.addCard(card)
@@ -155,7 +168,7 @@ struct GameEngine {
         }
     }
     
-    private mutating func reshuffleDeck() {
+    private func reshuffleDeck() {
         guard state.discardPile.count > 1 else { return }
         
         // Keep the top card
@@ -168,7 +181,7 @@ struct GameEngine {
         state.discardPile = [topCard]
     }
     
-    private mutating func checkForGameEnd() {
+    private func checkForGameEnd() {
         // Game ends when all but one player have finished
         let playersWithCards = state.players.indices.filter { !state.finishedPlayerIndices.contains($0) }
         
