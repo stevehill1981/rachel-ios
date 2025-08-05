@@ -18,6 +18,10 @@ struct Deck {
         self.cards = newCards.shuffled()
     }
     
+    init(cards: [Card]) {
+        self.cards = cards
+    }
+    
     mutating func deal() -> Card? {
         return cards.popLast()
     }
