@@ -34,11 +34,13 @@ struct HardAIStrategy: AIStrategy {
         // For each playable card, see if we have other cards of the same rank to stack
         for playableCard in playableCards {
             let rank = playableCard.card.rank
+            print("DEBUG: Checking stackable cards for rank \(rank) (playable card at index \(playableCard.index))")
             
             // Find all cards in hand with the same rank
             let sameRankIndices = player.hand.cards.enumerated().compactMap { index, card in
                 card.rank == rank ? (index: index, card: card) : nil
             }
+            print("DEBUG: Found \(sameRankIndices.count) cards of rank \(rank) at indices: \(sameRankIndices.map { $0.index })")
             
             if sameRankIndices.count > 1 {
                 // We can stack these cards - decide if we should
@@ -52,11 +54,19 @@ struct HardAIStrategy: AIStrategy {
                 
                 if shouldStack.stack {
                     var indicesToPlay = Array(sameRankIndices.map { $0.index }.prefix(shouldStack.count))
+                    print("DEBUG: Initial indicesToPlay: \(indicesToPlay) for \(shouldStack.count) cards")
+                    
                     // Make sure the playable card is first
                     if let playableIndex = indicesToPlay.firstIndex(of: playableCard.index) {
                         indicesToPlay.remove(at: playableIndex)
                         indicesToPlay.insert(playableCard.index, at: 0)
+                        print("DEBUG: Reordered indicesToPlay to put playable card first: \(indicesToPlay)")
+                    } else {
+                        print("DEBUG: WARNING - playable card index \(playableCard.index) not in indicesToPlay!")
+                        // This is a bug - the playable card should always be included
+                        indicesToPlay.insert(playableCard.index, at: 0)
                     }
+                    
                     let nominateSuit = rank == .ace ? 
                         selectStrategicSuit(for: player, gameState: gameState, excluding: sameRankIndices[0].card.suit) : nil
                     return .playCards(indices: indicesToPlay, nominateSuit: nominateSuit)

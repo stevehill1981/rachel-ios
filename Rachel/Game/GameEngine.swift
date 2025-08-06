@@ -93,29 +93,56 @@ class GameEngine: ObservableObject {
     }
     
     func playMultipleCards(indices: [Int], by playerIndex: Int) -> Bool {
-        guard playerIndex == state.currentPlayerIndex else { return false }
-        guard !indices.isEmpty else { return false }
+        guard playerIndex == state.currentPlayerIndex else { 
+            print("playMultipleCards failed: wrong player (expected \(state.currentPlayerIndex), got \(playerIndex))")
+            return false 
+        }
+        guard !indices.isEmpty else { 
+            print("playMultipleCards failed: empty indices")
+            return false 
+        }
         
-        // Sort indices to play from lowest to highest
-        let sortedIndices = indices.sorted()
+        // Use indices in the order provided (no sorting!)
+        print("Indices to play (in order): \(indices)")
         
         // Validate first card can be played normally
-        guard sortedIndices[0] < state.players[playerIndex].hand.cards.count else { return false }
-        let firstCard = state.players[playerIndex].hand.cards[sortedIndices[0]]
-        guard let topCard = state.discardPile.last else { return false }
-        guard GameRules.canPlay(card: firstCard, on: topCard, gameState: state) else { return false }
+        guard indices[0] < state.players[playerIndex].hand.cards.count else { 
+            print("playMultipleCards failed: first index \(indices[0]) out of bounds (hand size: \(state.players[playerIndex].hand.cards.count))")
+            return false 
+        }
+        let firstCard = state.players[playerIndex].hand.cards[indices[0]]
+        print("First card to play: \(firstCard)")
+        
+        guard let topCard = state.discardPile.last else { 
+            print("playMultipleCards failed: no top card")
+            return false 
+        }
+        print("Top card: \(topCard)")
+        
+        guard GameRules.canPlay(card: firstCard, on: topCard, gameState: state) else { 
+            print("playMultipleCards failed: first card cannot be played on top card")
+            return false 
+        }
         
         // Validate all cards have the same rank
         let rank = firstCard.rank
-        for index in sortedIndices {
-            guard index < state.players[playerIndex].hand.cards.count else { return false }
-            if state.players[playerIndex].hand.cards[index].rank != rank {
+        print("Expected rank for all cards: \(rank)")
+        
+        for index in indices {
+            guard index < state.players[playerIndex].hand.cards.count else { 
+                print("playMultipleCards failed: index \(index) out of bounds")
+                return false 
+            }
+            let card = state.players[playerIndex].hand.cards[index]
+            print("Card at index \(index): \(card)")
+            if card.rank != rank {
+                print("playMultipleCards failed: card at index \(index) has rank \(card.rank), expected \(rank)")
                 return false
             }
         }
         
-        // Play all cards
-        var remainingIndices = sortedIndices
+        // Play all cards in the order provided
+        var remainingIndices = indices
         var playedAny = false
         
         while !remainingIndices.isEmpty {
