@@ -27,22 +27,32 @@ struct MediumAIStrategy: AIStrategy {
             return .drawCard
         }
         
-        // Group cards by rank to find stackable options
-        let cardsByRank = Dictionary(grouping: playableCards) { $0.card.rank }
-        
-        // Find the best play (might be single or multiple cards)
-        for (rank, cards) in cardsByRank {
-            if cards.count > 1 {
+        // Check if we can stack cards
+        // For each playable card, see if we have other cards of the same rank to stack
+        for playableCard in playableCards {
+            let rank = playableCard.card.rank
+            
+            // Find all cards in hand with the same rank
+            let sameRankCards = player.hand.cards.enumerated().compactMap { index, card in
+                card.rank == rank ? (index: index, card: card) : nil
+            }
+            
+            if sameRankCards.count > 1 {
                 // We can stack these cards - decide if we should
                 let shouldStack = evaluateStacking(
                     rank: rank,
-                    cardCount: cards.count,
+                    cardCount: sameRankCards.count,
                     handSize: player.hand.count,
                     gameState: gameState
                 )
                 
                 if shouldStack {
-                    let indices = cards.map { $0.index }
+                    // Make sure the playable card is first
+                    var indices = sameRankCards.map { $0.index }
+                    if let playableIndex = indices.firstIndex(of: playableCard.index) {
+                        indices.remove(at: playableIndex)
+                        indices.insert(playableCard.index, at: 0)
+                    }
                     let nominateSuit = rank == .ace ? selectBestSuit(for: player) : nil
                     return .playCards(indices: indices, nominateSuit: nominateSuit)
                 }

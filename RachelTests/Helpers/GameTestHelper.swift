@@ -60,13 +60,17 @@ enum GameTestHelper {
             }
             
         case .playCards(let indices, let nominateSuit):
-            // Play multiple cards in order (highest index first to maintain indices)
-            let sortedIndices = indices.sorted(by: >)
+            // Play cards in the order specified by the AI
             var playedAny = false
+            var remainingIndices = indices
             
-            for index in sortedIndices {
+            // Play cards one by one, adjusting indices as we go
+            while !remainingIndices.isEmpty {
+                let index = remainingIndices.removeFirst()
                 if engine.playCard(at: index, by: playerIndex) {
                     playedAny = true
+                    // Adjust remaining indices since we removed a card
+                    remainingIndices = remainingIndices.map { $0 > index ? $0 - 1 : $0 }
                 }
             }
             

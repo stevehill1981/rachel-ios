@@ -27,28 +27,38 @@ struct HardAIStrategy: AIStrategy {
             return .drawCard
         }
         
-        // Group cards by rank to find stackable options
-        let cardsByRank = Dictionary(grouping: playableCards) { $0.card.rank }
-        
         // Analyze game state for strategic decisions
         let analysis = analyzeGameState(player: player, gameState: gameState)
         
-        // Find the best play (might be single or multiple cards)
-        for (rank, cards) in cardsByRank {
-            if cards.count > 1 {
+        // Check if we can stack cards
+        // For each playable card, see if we have other cards of the same rank to stack
+        for playableCard in playableCards {
+            let rank = playableCard.card.rank
+            
+            // Find all cards in hand with the same rank
+            let sameRankIndices = player.hand.cards.enumerated().compactMap { index, card in
+                card.rank == rank ? (index: index, card: card) : nil
+            }
+            
+            if sameRankIndices.count > 1 {
                 // We can stack these cards - decide if we should
                 let shouldStack = evaluateStrategicStacking(
                     rank: rank,
-                    cards: cards,
+                    cards: sameRankIndices,
                     gameAnalysis: analysis,
                     player: player,
                     gameState: gameState
                 )
                 
                 if shouldStack.stack {
-                    let indicesToPlay = Array(cards.map { $0.index }.prefix(shouldStack.count))
+                    var indicesToPlay = Array(sameRankIndices.map { $0.index }.prefix(shouldStack.count))
+                    // Make sure the playable card is first
+                    if let playableIndex = indicesToPlay.firstIndex(of: playableCard.index) {
+                        indicesToPlay.remove(at: playableIndex)
+                        indicesToPlay.insert(playableCard.index, at: 0)
+                    }
                     let nominateSuit = rank == .ace ? 
-                        selectStrategicSuit(for: player, gameState: gameState, excluding: cards[0].card.suit) : nil
+                        selectStrategicSuit(for: player, gameState: gameState, excluding: sameRankIndices[0].card.suit) : nil
                     return .playCards(indices: indicesToPlay, nominateSuit: nominateSuit)
                 }
             }

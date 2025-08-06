@@ -476,21 +476,27 @@ final class GameFlowTests: XCTestCase {
                 
             case .playCards(let indices, let nominateSuit):
                 print("AI decides to play cards at indices \(indices)")
-                let sortedIndices = indices.sorted(by: >)
                 var playedAny = false
+                var remainingIndices = indices
                 
-                for (i, idx) in sortedIndices.enumerated() {
+                // Play cards one by one, adjusting indices as we go
+                var isFirst = true
+                while !remainingIndices.isEmpty {
+                    let idx = remainingIndices.removeFirst()
                     if idx < currentPlayer.hand.cards.count {
                         let card = currentPlayer.hand.cards[idx]
-                        if i == 0 {
+                        if isFirst {
                             print("Attempting to play: \(card)")
                             let topCard = engine.state.discardPile.last!
                             let canPlay = GameRules.canPlay(card: card, on: topCard, gameState: engine.state)
                             print("Can play check: \(canPlay)")
+                            isFirst = false
                         }
                         if engine.playCard(at: idx, by: currentPlayerIndex) {
                             playedAny = true
                             playCount += 1
+                            // Adjust remaining indices since we removed a card
+                            remainingIndices = remainingIndices.map { $0 > idx ? $0 - 1 : $0 }
                         }
                     }
                 }
@@ -664,13 +670,17 @@ final class GameFlowTests: XCTestCase {
                         }
                     }
                 case .playCards(let indices, let nominateSuit):
-                    // Play multiple cards
-                    let sortedIndices = indices.sorted(by: >)
+                    // Play cards in order specified by AI
                     var playedAny = false
-                    for idx in sortedIndices {
+                    var remainingIndices = indices
+                    
+                    while !remainingIndices.isEmpty {
+                        let idx = remainingIndices.removeFirst()
                         if idx >= 0 && idx < currentPlayer.hand.cards.count {
                             if engine.playCard(at: idx, by: currentPlayerIndex) {
                                 playedAny = true
+                                // Adjust remaining indices
+                                remainingIndices = remainingIndices.map { $0 > idx ? $0 - 1 : $0 }
                             }
                         }
                     }
@@ -799,11 +809,15 @@ final class GameFlowTests: XCTestCase {
                     engine.endTurn()
                 }
             case .playCards(let indices, let nominateSuit):
-                let sortedIndices = indices.sorted(by: >)
                 var playedAny = false
-                for idx in sortedIndices {
+                var remainingIndices = indices
+                
+                while !remainingIndices.isEmpty {
+                    let idx = remainingIndices.removeFirst()
                     if engine.playCard(at: idx, by: currentPlayerIndex) {
                         playedAny = true
+                        // Adjust remaining indices
+                        remainingIndices = remainingIndices.map { $0 > idx ? $0 - 1 : $0 }
                     }
                 }
                 if playedAny {
@@ -872,11 +886,15 @@ final class GameFlowTests: XCTestCase {
                         engine.nominateSuit(suit)
                     }
                 case .playCards(let indices, let nominateSuit):
-                    let sortedIndices = indices.sorted(by: >)
                     var playedAny = false
-                    for idx in sortedIndices {
+                    var remainingIndices = indices
+                    
+                    while !remainingIndices.isEmpty {
+                        let idx = remainingIndices.removeFirst()
                         if engine.playCard(at: idx, by: currentPlayerIndex) {
                             playedAny = true
+                            // Adjust remaining indices
+                            remainingIndices = remainingIndices.map { $0 > idx ? $0 - 1 : $0 }
                         }
                     }
                     if playedAny, let suit = nominateSuit, engine.state.needsSuitNomination {
