@@ -59,7 +59,8 @@ class GameEngine: ObservableObject {
         } else {
             pickupCards(count: 1)
         }
-        moveToNextPlayer()
+        // End turn after drawing (this will handle moveToNextPlayer)
+        endTurn()
     }
     
     func canPlay(card: Card, playerIndex: Int) -> Bool {
@@ -139,6 +140,9 @@ class GameEngine: ObservableObject {
     // MARK: - Turn Management
     
     func endTurn() {
+        // Increment turn count
+        state.turnCount += 1
+        
         // Clear turn state
         state.nominatedSuit = nil
         state.needsSuitNomination = false
@@ -165,6 +169,7 @@ class GameEngine: ObservableObject {
                 pickupCards(count: state.pendingPickups)
                 state.pendingPickups = 0
                 state.pendingPickupType = nil
+                // Note: Their turn will begin, and they'll need to draw or play
             }
             // If they have valid moves, they MUST play one on their turn
         }
@@ -225,7 +230,12 @@ class GameEngine: ObservableObject {
     }
     
     private func reshuffleDeck() {
-        guard state.discardPile.count > 1 else { return }
+        guard state.discardPile.count > 1 else { 
+            print("WARNING: Cannot reshuffle - not enough cards in discard pile")
+            return 
+        }
+        
+        print("Reshuffling deck: \(state.discardPile.count - 1) cards from discard pile")
         
         // Keep the top card
         let topCard = state.discardPile.removeLast()
@@ -235,6 +245,8 @@ class GameEngine: ObservableObject {
         
         // Reset discard pile with just the top card
         state.discardPile = [topCard]
+        
+        print("Reshuffle complete: Deck has \(state.deck.count) cards, discard has \(state.discardPile.count) card")
     }
     
     private func checkForGameEnd() {

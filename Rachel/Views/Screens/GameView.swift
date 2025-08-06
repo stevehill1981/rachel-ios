@@ -105,8 +105,8 @@ struct TopBarView: View {
     let onExit: () -> Void
     
     var turnNumber: Int {
-        // Calculate turn number based on how many cards have been played
-        engine.state.discardPile.count
+        // Use the actual turn count from game state
+        engine.state.turnCount + 1 // +1 because we want to show "Turn 1" not "Turn 0"
     }
     
     var body: some View {

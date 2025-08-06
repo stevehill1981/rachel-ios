@@ -18,6 +18,7 @@ struct GameState {
     var direction: Direction = .clockwise
     var gameStatus: GameStatus = .notStarted
     var finishedPlayerIndices: [Int] = [] // Order of finishing (1st, 2nd, 3rd, etc.)
+    var turnCount: Int = 0 // Track total turns played
     
     // Pending effects
     var pendingPickups: Int = 0
