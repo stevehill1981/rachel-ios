@@ -13,25 +13,29 @@ struct ContentView: View {
     @State private var showCustomGame = false
     
     var body: some View {
-        if isGameActive {
-            GameView(engine: gameEngine) {
-                // Exit game
-                isGameActive = false
+        Group {
+            if isGameActive {
+                GameView(engine: gameEngine) {
+                    // Exit game
+                    isGameActive = false
+                }
+            } else if showCustomGame {
+                // TODO: Show custom game setup
+                Text("Custom Game Setup")
+                    .onTapGesture {
+                        showCustomGame = false
+                    }
+            } else {
+                StartScreenView(
+                    onQuickPlay: startQuickPlay,
+                    onCustomGame: {
+                        showCustomGame = true
+                    }
+                )
             }
-        } else if showCustomGame {
-            // TODO: Show custom game setup
-            Text("Custom Game Setup")
-                .onTapGesture {
-                    showCustomGame = false
-                }
-        } else {
-            StartScreenView(
-                onQuickPlay: startQuickPlay,
-                onCustomGame: {
-                    showCustomGame = true
-                }
-            )
         }
+        .statusBarHidden()
+        .persistentSystemOverlays(.hidden)
     }
     
     private func startQuickPlay() {

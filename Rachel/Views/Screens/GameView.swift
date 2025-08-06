@@ -66,6 +66,8 @@ struct GameView: View {
         .onChange(of: engine.state.currentPlayerIndex) {
             aiCoordinator.checkForAITurn()
         }
+        .statusBarHidden()
+        .persistentSystemOverlays(.hidden)
         .overlay {
             ZStack {
                 if engine.state.gameStatus == .finished {

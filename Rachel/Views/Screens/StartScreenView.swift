@@ -117,6 +117,8 @@ struct StartScreenView: View {
         .sheet(isPresented: $showRules) {
             RulesView()
         }
+        .statusBarHidden()
+        .persistentSystemOverlays(.hidden)
     }
 }
 
