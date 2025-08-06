@@ -122,14 +122,6 @@ struct DiscardPileView: View {
                         .zIndex(Double(cardIndex))
                 }
                 
-                // Highlight effect on top card
-                if discardPile.count > 0 {
-                    RoundedRectangle(cornerRadius: 10)
-                        .strokeBorder(Color.yellow.opacity(0.4), lineWidth: 2)
-                        .frame(height: 140)
-                        .aspectRatio(5/7, contentMode: .fit)
-                        .zIndex(Double(cardsToShow))
-                }
                 
                 // Nominated suit indicator
                 if let suit = nominatedSuit {
