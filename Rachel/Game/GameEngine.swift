@@ -14,8 +14,7 @@ class GameEngine: ObservableObject {
         self.state = GameState(players: players)
     }
     
-    // Test helper
-    #if DEBUG
+    // Test helper - available in tests
     init(state: GameState) {
         self.state = state
     }
@@ -23,7 +22,6 @@ class GameEngine: ObservableObject {
     func updateState(_ closure: (inout GameState) -> Void) {
         closure(&state)
     }
-    #endif
     
     // MARK: - Game Setup
     
@@ -37,8 +35,22 @@ class GameEngine: ObservableObject {
         }
         
         // Deal first card to discard pile
-        if let firstCard = state.deck.deal() {
-            state.discardPile.append(firstCard)
+        // Keep dealing until we get a non-special card
+        var firstCard: Card?
+        while firstCard == nil {
+            if let card = state.deck.deal() {
+                if ![.two, .jack, .queen, .ace].contains(card.rank) {
+                    firstCard = card
+                }
+                // If it's a special card, we'll just try again (card goes back to bottom of deck conceptually)
+            } else {
+                // Deck is empty? This shouldn't happen with proper setup
+                break
+            }
+        }
+        
+        if let validFirstCard = firstCard {
+            state.discardPile.append(validFirstCard)
         }
         
         state.gameStatus = .playing
@@ -47,8 +59,20 @@ class GameEngine: ObservableObject {
     // MARK: - Playing Cards
     
     func drawCard() {
-        guard state.currentPlayerIndex == 0 else { return } // Only human player can draw
-        pickupCards(count: 1)
+        // Check if player has any valid moves - can only draw if no playable cards
+        if state.pendingPickups == 0 && playerHasValidMove() {
+            // Player has valid moves - cannot draw!
+            return
+        }
+        
+        // Handle pending pickups
+        if state.pendingPickups > 0 {
+            pickupCards(count: state.pendingPickups)
+            state.pendingPickups = 0
+        } else {
+            pickupCards(count: 1)
+        }
+        moveToNextPlayer()
     }
     
     func canPlay(card: Card, playerIndex: Int) -> Bool {
@@ -192,5 +216,30 @@ class GameEngine: ObservableObject {
                 state.finishedPlayerIndices.append(lastPlayer)
             }
         }
+    }
+    
+    func resetGame() {
+        // Reset all players' hands
+        for i in state.players.indices {
+            state.players[i].hand = Hand()
+        }
+        
+        // Reset game state
+        state.deck = Deck()
+        state.discardPile = []
+        state.currentPlayerIndex = 0
+        state.direction = .clockwise
+        state.pendingPickups = 0
+        state.pendingPickupType = nil
+        state.pendingSkips = 0
+        state.nominatedSuit = nil
+        state.needsSuitNomination = false
+        state.gameStatus = .notStarted
+        state.finishedPlayerIndices = []
+    }
+    
+    func setupNewGame(players: [Player]) {
+        // Create a new game state with new players
+        self.state = GameState(players: players)
     }
 }
