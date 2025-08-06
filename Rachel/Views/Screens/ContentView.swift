@@ -20,11 +20,12 @@ struct ContentView: View {
                     isGameActive = false
                 }
             } else if showCustomGame {
-                // TODO: Show custom game setup
-                Text("Custom Game Setup")
-                    .onTapGesture {
-                        showCustomGame = false
+                CustomGameView(
+                    isPresented: $showCustomGame,
+                    onStartGame: { players in
+                        startCustomGame(with: players)
                     }
+                )
             } else {
                 StartScreenView(
                     onQuickPlay: startQuickPlay,
@@ -52,6 +53,16 @@ struct ContentView: View {
         gameEngine.setupNewGame(players: players)
         gameEngine.dealCards()
         
+        isGameActive = true
+    }
+    
+    private func startCustomGame(with players: [Player]) {
+        // Setup game with custom players
+        gameEngine.setupNewGame(players: players)
+        gameEngine.dealCards()
+        
+        // Close custom game view and start the game
+        showCustomGame = false
         isGameActive = true
     }
 }

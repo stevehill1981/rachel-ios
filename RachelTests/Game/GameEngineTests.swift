@@ -286,4 +286,173 @@ final class GameEngineTests: XCTestCase {
         XCTAssertEqual(engine.state.nominatedSuit, .diamonds)
         XCTAssertFalse(engine.state.needsSuitNomination)
     }
+    
+    // MARK: - Custom Game Setup
+    
+    func testCustomGameSetup() {
+        // Create players with different AI difficulties
+        let players = [
+            Player(id: "1", name: "Human Player"),
+            Player(id: "2", name: "Easy AI", isAI: true, aiSkillLevel: .easy),
+            Player(id: "3", name: "Medium AI", isAI: true, aiSkillLevel: .medium),
+            Player(id: "4", name: "Hard AI", isAI: true, aiSkillLevel: .hard)
+        ]
+        
+        let engine = GameEngine(players: [])
+        
+        // Setup new game
+        engine.setupNewGame(players: players)
+        
+        // Verify players were set correctly
+        XCTAssertEqual(engine.state.players.count, 4)
+        XCTAssertEqual(engine.state.players[0].name, "Human Player")
+        XCTAssertFalse(engine.state.players[0].isAI)
+        
+        XCTAssertEqual(engine.state.players[1].name, "Easy AI")
+        XCTAssertTrue(engine.state.players[1].isAI)
+        XCTAssertEqual(engine.state.players[1].aiSkillLevel, .easy)
+        
+        XCTAssertEqual(engine.state.players[2].name, "Medium AI")
+        XCTAssertTrue(engine.state.players[2].isAI)
+        XCTAssertEqual(engine.state.players[2].aiSkillLevel, .medium)
+        
+        XCTAssertEqual(engine.state.players[3].name, "Hard AI")
+        XCTAssertTrue(engine.state.players[3].isAI)
+        XCTAssertEqual(engine.state.players[3].aiSkillLevel, .hard)
+        
+        // Verify game state is reset
+        XCTAssertEqual(engine.state.currentPlayerIndex, 0)
+        XCTAssertEqual(engine.state.gameStatus, .notStarted)
+        XCTAssertTrue(engine.state.discardPile.isEmpty)
+    }
+    
+    func testCustomGameWithMixedDifficulties() {
+        // Create 7 AI players with mixed difficulties
+        let players = [
+            Player(id: "1", name: "Human"),
+            Player(id: "2", name: "AI 1", isAI: true, aiSkillLevel: .easy),
+            Player(id: "3", name: "AI 2", isAI: true, aiSkillLevel: .hard),
+            Player(id: "4", name: "AI 3", isAI: true, aiSkillLevel: .medium),
+            Player(id: "5", name: "AI 4", isAI: true, aiSkillLevel: .easy),
+            Player(id: "6", name: "AI 5", isAI: true, aiSkillLevel: .hard),
+            Player(id: "7", name: "AI 6", isAI: true, aiSkillLevel: .medium),
+            Player(id: "8", name: "AI 7", isAI: true, aiSkillLevel: .hard)
+        ]
+        
+        let engine = GameEngine(players: [])
+        engine.setupNewGame(players: players)
+        
+        XCTAssertEqual(engine.state.players.count, 8)
+        
+        // Count difficulties
+        let easyCount = engine.state.players.filter { $0.aiSkillLevel == .easy }.count
+        let mediumCount = engine.state.players.filter { $0.aiSkillLevel == .medium }.count
+        let hardCount = engine.state.players.filter { $0.aiSkillLevel == .hard }.count
+        
+        XCTAssertEqual(easyCount, 2)
+        XCTAssertEqual(mediumCount, 2)
+        XCTAssertEqual(hardCount, 3)
+    }
+    
+    func testDealCardsAfterCustomSetup() {
+        let players = [
+            Player(id: "1", name: "Player 1"),
+            Player(id: "2", name: "Player 2", isAI: true)
+        ]
+        
+        let engine = GameEngine(players: [])
+        engine.setupNewGame(players: players)
+        engine.dealCards()
+        
+        // Verify cards were dealt
+        XCTAssertEqual(engine.state.players[0].hand.count, 7)
+        XCTAssertEqual(engine.state.players[1].hand.count, 7)
+        XCTAssertEqual(engine.state.discardPile.count, 1)
+        XCTAssertEqual(engine.state.gameStatus, .playing)
+    }
+    
+    // MARK: - Multiple Card Play
+    
+    func testPlayMultipleCardsSuccess() {
+        let players = [
+            Player(id: "1", name: "Player 1"),
+            Player(id: "2", name: "Player 2")
+        ]
+        
+        var state = GameState(players: players)
+        state.currentPlayerIndex = 0
+        
+        // Give player three 7s
+        state.players[0].hand.addCard(Card(rank: .seven, suit: .hearts))
+        state.players[0].hand.addCard(Card(rank: .seven, suit: .diamonds))
+        state.players[0].hand.addCard(Card(rank: .seven, suit: .clubs))
+        state.players[0].hand.addCard(Card(rank: .king, suit: .spades))
+        
+        // Top card is a 7 of spades
+        state.discardPile = [Card(rank: .seven, suit: .spades)]
+        state.gameStatus = .playing
+        
+        let engine = GameEngine(state: state)
+        
+        // Play all three 7s
+        let success = engine.playMultipleCards(indices: [0, 1, 2], by: 0)
+        
+        XCTAssertTrue(success)
+        XCTAssertEqual(engine.state.players[0].hand.count, 1) // Only King left
+        XCTAssertEqual(engine.state.discardPile.count, 4) // Original + 3 played
+    }
+    
+    func testPlayMultipleCardsInvalidRank() {
+        let players = [
+            Player(id: "1", name: "Player 1"),
+            Player(id: "2", name: "Player 2")
+        ]
+        
+        var state = GameState(players: players)
+        state.currentPlayerIndex = 0
+        
+        // Give player mixed ranks
+        state.players[0].hand.addCard(Card(rank: .seven, suit: .hearts))
+        state.players[0].hand.addCard(Card(rank: .seven, suit: .diamonds))
+        state.players[0].hand.addCard(Card(rank: .eight, suit: .clubs))
+        
+        // Top card
+        state.discardPile = [Card(rank: .seven, suit: .spades)]
+        state.gameStatus = .playing
+        
+        let engine = GameEngine(state: state)
+        
+        // Try to play cards with different ranks
+        let success = engine.playMultipleCards(indices: [0, 1, 2], by: 0)
+        
+        XCTAssertFalse(success)
+        XCTAssertEqual(engine.state.players[0].hand.count, 3) // No cards removed
+    }
+    
+    func testPlayMultipleCardsFirstNotPlayable() {
+        let players = [
+            Player(id: "1", name: "Player 1"),
+            Player(id: "2", name: "Player 2")
+        ]
+        
+        var state = GameState(players: players)
+        state.currentPlayerIndex = 0
+        
+        // Give player three 7s
+        state.players[0].hand.addCard(Card(rank: .seven, suit: .hearts))
+        state.players[0].hand.addCard(Card(rank: .seven, suit: .diamonds))
+        state.players[0].hand.addCard(Card(rank: .seven, suit: .clubs))
+        
+        // Top card is a King (7s can't be played)
+        state.discardPile = [Card(rank: .king, suit: .spades)]
+        state.gameStatus = .playing
+        
+        let engine = GameEngine(state: state)
+        
+        // Try to play the 7s
+        let success = engine.playMultipleCards(indices: [0, 1, 2], by: 0)
+        
+        XCTAssertFalse(success)
+        XCTAssertEqual(engine.state.players[0].hand.count, 3) // No cards removed
+    }
 }
