@@ -25,51 +25,8 @@ final class SimpleGameFlowTest: XCTestCase {
         
         // Test a few turns
         for turn in 0..<10 {
-            let currentPlayerIndex = engine.state.currentPlayerIndex
-            let currentPlayer = engine.state.players[currentPlayerIndex]
-            
-            print("Turn \(turn): Player \(currentPlayer.name) has \(currentPlayer.hand.count) cards")
-            
-            if currentPlayer.isAI {
-                // AI turn
-                let aiPlayer = AIPlayer(skillLevel: .easy)
-                let decision = aiPlayer.decideMove(for: currentPlayer, gameState: engine.state)
-                
-                print("AI decision: \(decision)")
-                
-                switch decision {
-                case .playCard(let index, let nominateSuit):
-                    if index < currentPlayer.hand.cards.count {
-                        let played = engine.playCard(at: index, by: currentPlayerIndex)
-                        if played, let suit = nominateSuit, engine.state.needsSuitNomination {
-                            engine.nominateSuit(suit)
-                        }
-                    }
-                case .drawCard, .drawCards(_):
-                    engine.drawCard()
-                }
-            } else {
-                // Human player - try to play valid cards
-                var played = false
-                if let topCard = engine.state.discardPile.last {
-                    for (index, card) in currentPlayer.hand.cards.enumerated() {
-                        if GameRules.canPlay(card: card, on: topCard, gameState: engine.state) {
-                            played = engine.playCard(at: index, by: currentPlayerIndex)
-                            if played && card.rank == .ace && engine.state.needsSuitNomination {
-                                engine.nominateSuit(.hearts)
-                            }
-                            if played {
-                                engine.endTurn()
-                            }
-                            break
-                        }
-                    }
-                }
-                
-                if !played {
-                    engine.drawCard()
-                }
-            }
+            print("Turn \(turn):")
+            GameTestHelper.executeTurn(for: &engine, printDebug: true)
             
             // Verify game state is still valid
             XCTAssertTrue(engine.state.currentPlayerIndex >= 0 && engine.state.currentPlayerIndex < engine.state.players.count)
@@ -84,7 +41,7 @@ final class SimpleGameFlowTest: XCTestCase {
             Player(id: "ai", name: "AI", isAI: true)
         ]
         
-        var engine = GameEngine(players: players)
+        let engine = GameEngine(players: players)
         
         // Set up a specific game state
         engine.updateState { state in

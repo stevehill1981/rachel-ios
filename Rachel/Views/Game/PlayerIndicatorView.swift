@@ -11,6 +11,14 @@ struct PlayerIndicatorView: View {
     let player: Player
     let isCurrentPlayer: Bool
     let cardCount: Int
+    let isThinking: Bool
+    
+    init(player: Player, isCurrentPlayer: Bool, cardCount: Int, isThinking: Bool = false) {
+        self.player = player
+        self.isCurrentPlayer = isCurrentPlayer
+        self.cardCount = cardCount
+        self.isThinking = isThinking
+    }
     
     var isHumanPlayer: Bool {
         !player.isAI
@@ -52,11 +60,32 @@ struct PlayerIndicatorView: View {
                     .offset(x: 20, y: -20)
             }
             
-            // Player name
-            Text(player.name)
-                .font(.caption)
-                .fontWeight(isHumanPlayer ? .semibold : .regular)
-                .foregroundColor(.white)
+            // Player name with thinking indicator
+            HStack(spacing: 4) {
+                if isThinking {
+                    ProgressView()
+                        .scaleEffect(0.6)
+                        .progressViewStyle(CircularProgressViewStyle(tint: .yellow))
+                }
+                Text(player.name)
+                    .font(.caption)
+                    .fontWeight(isHumanPlayer ? .semibold : .regular)
+                    .foregroundColor(.white)
+                
+                // AI Skill Level Badge
+                if player.isAI, let skillLevel = player.aiSkillLevel {
+                    Text(skillLevel.name)
+                        .font(.system(size: 9))
+                        .fontWeight(.medium)
+                        .foregroundColor(.white.opacity(0.8))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(
+                            Capsule()
+                                .fill(skillLevelColor(skillLevel))
+                        )
+                }
+            }
         }
         .scaleEffect(isCurrentPlayer ? 1.15 : 1.0)
         .animation(.easeInOut(duration: 0.3), value: isCurrentPlayer)
@@ -69,6 +98,17 @@ struct PlayerIndicatorView: View {
             return Color.orange
         } else {
             return Color.gray
+        }
+    }
+    
+    private func skillLevelColor(_ level: AISkillLevel) -> Color {
+        switch level {
+        case .easy:
+            return Color.green.opacity(0.6)
+        case .medium:
+            return Color.orange.opacity(0.6)
+        case .hard:
+            return Color.red.opacity(0.6)
         }
     }
 }

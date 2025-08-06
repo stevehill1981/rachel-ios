@@ -9,7 +9,14 @@ import SwiftUI
 
 struct GameView: View {
     @ObservedObject var engine: GameEngine
+    @StateObject private var aiCoordinator: AITurnCoordinator
     let onExit: () -> Void
+    
+    init(engine: GameEngine, onExit: @escaping () -> Void) {
+        self.engine = engine
+        self.onExit = onExit
+        self._aiCoordinator = StateObject(wrappedValue: AITurnCoordinator(engine: engine))
+    }
     
     var body: some View {
         ZStack {
@@ -23,7 +30,7 @@ struct GameView: View {
                 // Game table area
                 VStack {
                     // All players
-                    PlayersView(engine: engine)
+                    PlayersView(engine: engine, aiCoordinator: aiCoordinator)
                         .frame(maxHeight: 170)
                     
                     // Game info below players
@@ -50,6 +57,44 @@ struct GameView: View {
             }
         }
         .ignoresSafeArea(.container, edges: .top) // Let background extend under status bar
+        .onAppear {
+            aiCoordinator.startMonitoring()
+        }
+        .onDisappear {
+            aiCoordinator.stopMonitoring()
+        }
+        .onChange(of: engine.state.currentPlayerIndex) {
+            aiCoordinator.checkForAITurn()
+        }
+        .overlay {
+            ZStack {
+                if engine.state.gameStatus == .finished {
+                    GameEndView(
+                        finishedPlayers: engine.state.finishedPlayerIndices.compactMap { index in
+                            engine.state.players.indices.contains(index) ? engine.state.players[index] : nil
+                        },
+                        allPlayers: engine.state.players,
+                        onPlayAgain: {
+                            // Reset the game
+                            engine.resetGame()
+                            engine.dealCards()
+                            aiCoordinator.checkForAITurn()
+                        },
+                        onExit: onExit
+                    )
+                }
+                
+                if engine.state.needsSuitNomination && engine.state.currentPlayerIndex == 0 {
+                    Color.black.opacity(0.5)
+                        .ignoresSafeArea()
+                    
+                    SuitNominationView { suit in
+                        engine.nominateSuit(suit)
+                        engine.endTurn()
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -116,11 +161,11 @@ struct TopBarView: View {
 #Preview {
     let players = [
         Player(id: "1", name: "You"),
-        Player(id: "2", name: "Alex", isAI: true),
-        Player(id: "3", name: "Sam", isAI: true),
-        Player(id: "4", name: "Jamie", isAI: true)
+        Player(id: "2", name: "Alex (Easy)", isAI: true, aiSkillLevel: .easy),
+        Player(id: "3", name: "Sam (Medium)", isAI: true, aiSkillLevel: .medium),
+        Player(id: "4", name: "Jamie (Hard)", isAI: true, aiSkillLevel: .hard)
     ]
-    var engine = GameEngine(players: players)
+    let engine = GameEngine(players: players)
     engine.dealCards()
     
     return GameView(engine: engine) {

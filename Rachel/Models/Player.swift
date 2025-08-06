@@ -10,21 +10,24 @@ struct Player: Identifiable {
     let name: String
     var hand: Hand
     let isAI: Bool
+    let aiSkillLevel: AISkillLevel?
     
-    init(id: String, name: String, isAI: Bool = false) {
+    init(id: String, name: String, isAI: Bool = false, aiSkillLevel: AISkillLevel? = nil) {
         self.id = id
         self.name = name
         self.isAI = isAI
+        self.aiSkillLevel = isAI ? (aiSkillLevel ?? .medium) : nil
         self.hand = Hand()
     }
     
     // Test helper
     #if DEBUG
-    init(id: String, name: String, hand: Hand, isAI: Bool = false) {
+    init(id: String, name: String, hand: Hand, isAI: Bool = false, aiSkillLevel: AISkillLevel? = nil) {
         self.id = id
         self.name = name
         self.hand = hand
         self.isAI = isAI
+        self.aiSkillLevel = isAI ? (aiSkillLevel ?? .medium) : nil
     }
     #endif
 }

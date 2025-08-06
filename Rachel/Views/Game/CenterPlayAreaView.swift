@@ -24,7 +24,8 @@ struct CenterPlayAreaView: View {
             // Discard pile with glow effect
             DiscardPileView(
                 topCard: topCard,
-                nominatedSuit: engine.state.nominatedSuit
+                nominatedSuit: engine.state.nominatedSuit,
+                discardPile: engine.state.discardPile
             )
             
             // Game info
@@ -44,76 +45,93 @@ struct CenterCardAreaView: View {
     }
     
     var body: some View {
-        HStack(spacing: 50) {
+        HStack(spacing: 40) {
+            Spacer()
+            
             // Draw pile
             DrawPileView {
                 engine.drawCard()
             }
+            .frame(width: 100)
             
             // Discard pile with glow effect
             DiscardPileView(
                 topCard: topCard,
-                nominatedSuit: engine.state.nominatedSuit
+                nominatedSuit: engine.state.nominatedSuit,
+                discardPile: engine.state.discardPile
             )
+            .frame(width: 100)
+            
+            Spacer()
         }
+        .frame(maxWidth: .infinity)
     }
 }
 
 struct DrawPileView: View {
     let onTap: () -> Void
+    @State private var isPressed = false
     
     var body: some View {
-        ZStack {
-            ForEach(0..<3) { i in
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(
-                        LinearGradient(
-                            colors: [Color.blue.opacity(0.9), Color.blue.opacity(0.7)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .aspectRatio(5/7, contentMode: .fit)
-                    .frame(height: 112)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 10)
-                            .strokeBorder(Color.white.opacity(0.3), lineWidth: 1)
-                    )
-                    .overlay(
-                        VStack(spacing: 2) {
-                            Image(systemName: "questionmark")
-                                .font(.system(size: 32, weight: .bold))
-                                .foregroundColor(.white)
-                            Text("DRAW")
-                                .font(.system(size: 10, weight: .semibold, design: .rounded))
-                                .foregroundColor(.white.opacity(0.8))
-                        }
-                    )
-                    .shadow(color: .black.opacity(0.3), radius: 4, x: 0, y: 2)
-                    .offset(x: CGFloat(i * 3), y: CGFloat(i * 2))
+        CardBackView()
+            .frame(height: 140)
+            .shadow(color: .black.opacity(0.4), radius: 4, x: 0, y: 3)
+            .scaleEffect(isPressed ? 0.95 : 1.0)
+            .onTapGesture {
+                withAnimation(.easeInOut(duration: 0.1)) {
+                    isPressed = true
+                }
+                
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    withAnimation(.easeInOut(duration: 0.1)) {
+                        isPressed = false
+                    }
+                }
+                
+                onTap()
             }
-        }
-        .onTapGesture {
-            onTap()
-        }
     }
 }
 
 struct DiscardPileView: View {
     let topCard: Card?
     let nominatedSuit: Suit?
+    let discardPile: [Card]
     
     var body: some View {
         ZStack {
-            if let card = topCard {
-                CardView(card: card)
-                    .frame(height: 112)
-                    .shadow(color: .yellow.opacity(0.3), radius: 8, x: 0, y: 0)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 10)
-                            .strokeBorder(Color.yellow.opacity(0.4), lineWidth: 2)
-                    )
+            if let _ = topCard {
+                // Show bottom cards with slight rotation and offset
+                let cardsToShow = min(4, discardPile.count)
+                let startIndex = max(0, discardPile.count - cardsToShow)
                 
+                ForEach(startIndex..<discardPile.count, id: \.self) { index in
+                    let cardIndex = index - startIndex
+                    let card = discardPile[index]
+                    // Use card ID hash for consistent rotation
+                    let hashValue = abs(card.id.hashValue)
+                    let rotation = Double(hashValue % 17 - 8) * (1.0 - Double(cardIndex) / Double(cardsToShow))
+                    let offsetX = CGFloat(hashValue % 7 - 3)
+                    let offsetY = CGFloat(cardIndex) * -2
+                    
+                    CardView(card: card)
+                        .frame(height: 140)
+                        .rotationEffect(.degrees(rotation))
+                        .offset(x: offsetX, y: offsetY)
+                        .shadow(color: .black.opacity(0.2), radius: 2, x: 0, y: 1)
+                        .zIndex(Double(cardIndex))
+                }
+                
+                // Highlight effect on top card
+                if discardPile.count > 0 {
+                    RoundedRectangle(cornerRadius: 10)
+                        .strokeBorder(Color.yellow.opacity(0.4), lineWidth: 2)
+                        .frame(height: 140)
+                        .aspectRatio(5/7, contentMode: .fit)
+                        .zIndex(Double(cardsToShow))
+                }
+                
+                // Nominated suit indicator
                 if let suit = nominatedSuit {
                     VStack {
                         Spacer()
@@ -136,8 +154,10 @@ struct DiscardPileView: View {
                         }
                     }
                     .padding(4)
+                    .zIndex(Double(cardsToShow + 1))
                 }
             } else {
+                // Empty discard pile
                 RoundedRectangle(cornerRadius: 10)
                     .stroke(
                         LinearGradient(
@@ -145,13 +165,13 @@ struct DiscardPileView: View {
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         ),
-                        lineWidth: 2
+                        style: StrokeStyle(lineWidth: 2, dash: [5, 3])
                     )
                     .aspectRatio(5/7, contentMode: .fit)
-                    .frame(height: 112)
+                    .frame(height: 140)
                     .overlay(
                         VStack(spacing: 4) {
-                            Image(systemName: "tray")
+                            Image(systemName: "arrow.down.square")
                                 .font(.system(size: 24, weight: .light))
                                 .foregroundColor(.white.opacity(0.4))
                             Text("DISCARD")
@@ -226,7 +246,7 @@ struct GameInfoView: View {
         Player(id: "1", name: "You"),
         Player(id: "2", name: "Computer", isAI: true)
     ]
-    var engine = GameEngine(players: players)
+    let engine = GameEngine(players: players)
     engine.dealCards()
     
     return ZStack {

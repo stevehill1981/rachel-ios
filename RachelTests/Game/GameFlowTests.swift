@@ -24,67 +24,18 @@ final class GameFlowTests: XCTestCase {
         var engine = GameEngine(players: players)
         engine.dealCards()
         
-        var turnCount = 0
-        var playCount = 0
-        var drawCount = 0
-        var consecutiveDraws = 0
-        var maxConsecutiveDraws = 0
-        
-        // Run 100 turns to see patterns
-        while turnCount < 100 && engine.state.gameStatus == .playing {
-            turnCount += 1
-            
-            let currentPlayerIndex = engine.state.currentPlayerIndex
-            let currentPlayer = engine.state.players[currentPlayerIndex]
-            
-            // Count cards that can be played
-            var hasPlayableCard = false
-            if let topCard = engine.state.discardPile.last {
-                hasPlayableCard = currentPlayer.hand.cards.contains { card in
-                    GameRules.canPlay(card: card, on: topCard, gameState: engine.state)
-                }
-            }
-            
-            if hasPlayableCard {
-                // Reset consecutive draws counter
-                maxConsecutiveDraws = max(maxConsecutiveDraws, consecutiveDraws)
-                consecutiveDraws = 0
-                playCount += 1
-                
-                // Find and play first valid card (simulating human/AI behavior)
-                if let topCard = engine.state.discardPile.last {
-                    for (index, card) in currentPlayer.hand.cards.enumerated() {
-                        if GameRules.canPlay(card: card, on: topCard, gameState: engine.state) {
-                            let played = engine.playCard(at: index, by: currentPlayerIndex)
-                            if played {
-                                if card.rank == .ace && engine.state.needsSuitNomination {
-                                    engine.nominateSuit(.hearts)
-                                }
-                                engine.endTurn()
-                            }
-                            break
-                        }
-                    }
-                }
-            } else {
-                drawCount += 1
-                consecutiveDraws += 1
-                engine.drawCard()
-            }
-        }
-        
-        maxConsecutiveDraws = max(maxConsecutiveDraws, consecutiveDraws)
+        let stats = GameTestHelper.runGame(engine: &engine, maxTurns: 100)
         
         print("\n=== 4-PLAYER GAME STATS ===")
-        print("Total turns: \(turnCount)")
-        print("Cards played: \(playCount)")
-        print("Cards drawn: \(drawCount)")
-        print("Play rate: \(Double(playCount) * 100.0 / Double(turnCount))%")
-        print("Max consecutive draws: \(maxConsecutiveDraws)")
+        print("Total turns: \(stats.turnCount)")
+        print("Cards played: \(stats.playCount)")
+        print("Cards drawn: \(stats.drawCount)")
+        print("Play rate: \(stats.playRate * 100.0)%")
+        print("Max consecutive draws: \(stats.maxConsecutiveDraws)")
         
         // Check that we don't have extremely long draw streaks
-        XCTAssertLessThan(maxConsecutiveDraws, 30, "Should not have 30+ consecutive draws")
-        XCTAssertGreaterThan(playCount, turnCount / 10, "Should play cards at least 10% of the time")
+        XCTAssertLessThan(stats.maxConsecutiveDraws, 30, "Should not have 30+ consecutive draws")
+        XCTAssertGreaterThan(stats.playCount, stats.turnCount / 10, "Should play cards at least 10% of the time")
     }
     
     func testSingleGameTrace() {
@@ -95,10 +46,10 @@ final class GameFlowTests: XCTestCase {
             Player(id: "p3", name: "Player 3")
         ]
         
-        var engine = GameEngine(players: players)
+        let engine = GameEngine(players: players)
         
         // Use a fixed seed for reproducibility
-        var deck = Deck()
+        let deck = Deck()
         engine.updateState { state in
             state.deck = deck
             state.discardPile = []
@@ -213,7 +164,7 @@ final class GameFlowTests: XCTestCase {
             Player(id: "p2", name: "Player 2")
         ]
         
-        var engine = GameEngine(players: players)
+        let engine = GameEngine(players: players)
         engine.dealCards()
         
         print("\n=== STARTING GAME ===")
@@ -296,7 +247,7 @@ final class GameFlowTests: XCTestCase {
             Player(id: "p2", name: "Player 2")
         ]
         
-        var engine = GameEngine(players: players)
+        let engine = GameEngine(players: players)
         
         // Manually set up a simple game state
         engine.updateState { state in
@@ -375,26 +326,6 @@ final class GameFlowTests: XCTestCase {
         XCTAssertGreaterThan(engine.state.discardPile.count, 1, "Should have played at least one card")
     }
     
-    func testFirstDiscardCardNotSpecial() {
-        // Test that the first discard card is never a special card
-        for _ in 1...20 {
-            let players = [
-                Player(id: "p1", name: "Player 1"),
-                Player(id: "p2", name: "Player 2")
-            ]
-            
-            var engine = GameEngine(players: players)
-            engine.dealCards()
-            
-            if let topCard = engine.state.discardPile.last {
-                XCTAssertFalse(
-                    [.two, .jack, .queen, .ace].contains(topCard.rank),
-                    "First discard card should not be special: \(topCard)"
-                )
-            }
-        }
-    }
-    
     func testDealingGivesPlayableCards() {
         // Test that dealing cards gives at least some playable options
         var totalGames = 0
@@ -407,7 +338,7 @@ final class GameFlowTests: XCTestCase {
                 Player(id: "p2", name: "Player 2")
             ]
             
-            var engine = GameEngine(players: players)
+            let engine = GameEngine(players: players)
             engine.dealCards()
             
             totalGames += 1
@@ -445,7 +376,7 @@ final class GameFlowTests: XCTestCase {
     
     func testBasicGameMechanics() {
         // Very simple test to verify basic mechanics work
-        var engine = GameEngine(players: [
+        let engine = GameEngine(players: [
             Player(id: "p1", name: "Player 1"),
             Player(id: "p2", name: "Player 2")
         ])
@@ -492,7 +423,7 @@ final class GameFlowTests: XCTestCase {
             Player(id: "ai2", name: "AI 2", isAI: true, aiSkillLevel: .easy)
         ]
         
-        var engine = GameEngine(players: players)
+        let engine = GameEngine(players: players)
         engine.dealCards()
         
         print("\n=== GAME START ===")
@@ -543,6 +474,40 @@ final class GameFlowTests: XCTestCase {
                     drawCount += 1
                 }
                 
+            case .playCards(let indices, let nominateSuit):
+                print("AI decides to play cards at indices \(indices)")
+                let sortedIndices = indices.sorted(by: >)
+                var playedAny = false
+                
+                for (i, idx) in sortedIndices.enumerated() {
+                    if idx < currentPlayer.hand.cards.count {
+                        let card = currentPlayer.hand.cards[idx]
+                        if i == 0 {
+                            print("Attempting to play: \(card)")
+                            let topCard = engine.state.discardPile.last!
+                            let canPlay = GameRules.canPlay(card: card, on: topCard, gameState: engine.state)
+                            print("Can play check: \(canPlay)")
+                        }
+                        if engine.playCard(at: idx, by: currentPlayerIndex) {
+                            playedAny = true
+                            playCount += 1
+                        }
+                    }
+                }
+                
+                if playedAny {
+                    print("SUCCESS: Cards played")
+                    if let suit = nominateSuit, engine.state.needsSuitNomination {
+                        engine.nominateSuit(suit)
+                        print("Nominated suit: \(suit)")
+                    }
+                    engine.endTurn()
+                } else {
+                    print("FAILED: Could not play cards")
+                    engine.drawCard()
+                    drawCount += 1
+                }
+                
             case .drawCard:
                 print("AI decides to draw")
                 engine.drawCard()
@@ -577,78 +542,13 @@ final class GameFlowTests: XCTestCase {
         let initialHandSizes = engine.state.players.map { $0.hand.count }
         print("Initial hands: \(initialHandSizes)")
         
-        // Play 10 turns
-        for turn in 1...10 {
-            let currentPlayerIndex = engine.state.currentPlayerIndex
-            let currentPlayer = engine.state.players[currentPlayerIndex]
-            
-            print("\nTurn \(turn): Player \(currentPlayerIndex) (\(currentPlayer.name)) has \(currentPlayer.hand.count) cards")
-            print("Top card: \(engine.state.discardPile.last!)")
-            
-            if currentPlayer.isAI {
-                let aiPlayer = AIPlayer(skillLevel: .easy)
-                let decision = aiPlayer.decideMove(for: currentPlayer, gameState: engine.state)
-                print("AI decision: \(decision)")
-                
-                switch decision {
-                case .playCard(let index, let nominateSuit):
-                    let played = engine.playCard(at: index, by: currentPlayerIndex)
-                    if played {
-                        print("AI played card at index \(index)")
-                        if let suit = nominateSuit, engine.state.needsSuitNomination {
-                            engine.nominateSuit(suit)
-                        }
-                        engine.endTurn()
-                    } else {
-                        print("AI failed to play card at index \(index)")
-                        engine.drawCard()
-                        // drawCard already calls moveToNextPlayer, so don't call endTurn
-                    }
-                case .drawCard:
-                    print("AI drew a card")
-                    engine.drawCard()
-                    // drawCard already calls moveToNextPlayer, so don't call endTurn
-                case .drawCards(let count):
-                    print("AI needs to draw \(count) cards (pending pickups)")
-                    engine.drawCard()
-                    // drawCard already calls moveToNextPlayer, so don't call endTurn
-                }
-            } else {
-                // Human player - try to play valid cards
-                var played = false
-                if let topCard = engine.state.discardPile.last {
-                    for (index, card) in currentPlayer.hand.cards.enumerated() {
-                        if GameRules.canPlay(card: card, on: topCard, gameState: engine.state) {
-                            played = engine.playCard(at: index, by: currentPlayerIndex)
-                            if played {
-                                print("Human played card at index \(index)")
-                                if card.rank == .ace && engine.state.needsSuitNomination {
-                                    engine.nominateSuit(.hearts)
-                                }
-                                engine.endTurn()
-                            }
-                            break
-                        }
-                    }
-                }
-                
-                if !played {
-                    print("Human drew a card")
-                    engine.drawCard()
-                    // drawCard already calls moveToNextPlayer, so don't call endTurn
-                }
-            }
-            
-            // Only call endTurn if we played a card (not if we drew)
-            // (endTurn is already handled by drawCard)
-            
-            let currentHandSizes = engine.state.players.map { $0.hand.count }
-            print("After turn hands: \(currentHandSizes)")
-        }
+        // Play 10 turns with debug output
+        let stats = GameTestHelper.runGame(engine: &engine, maxTurns: 10, printDebug: true)
         
         // Check that something happened
         let finalHandSizes = engine.state.players.map { $0.hand.count }
         print("\nFinal hands: \(finalHandSizes)")
+        print("Turns played: \(stats.turnCount), Cards played: \(stats.playCount), Cards drawn: \(stats.drawCount)")
         
         // At least one player should have a different number of cards
         XCTAssertTrue(
@@ -662,7 +562,7 @@ final class GameFlowTests: XCTestCase {
             Player(id: "ai", name: "AI", isAI: true, aiSkillLevel: .easy)
         ]
         
-        var engine = GameEngine(players: players)
+        let engine = GameEngine(players: players)
         
         // Set up a simple game state
         engine.updateState { state in
@@ -688,6 +588,18 @@ final class GameFlowTests: XCTestCase {
             let topCard = engine.state.discardPile.last!
             XCTAssertTrue(GameRules.canPlay(card: card, on: topCard, gameState: engine.state), 
                          "AI chose unplayable card: \(card) on \(topCard)")
+        case .playCards(let indices, _):
+            // AI should choose to play cards including index 0 or 1
+            let firstIndex = indices.first ?? -1
+            XCTAssertTrue(firstIndex == 0 || firstIndex == 1, "AI should play a valid card, got index \(firstIndex)")
+            
+            // Verify the chosen card can actually be played
+            if firstIndex >= 0 && firstIndex < engine.state.players[0].hand.cards.count {
+                let card = engine.state.players[0].hand.cards[firstIndex]
+                let topCard = engine.state.discardPile.last!
+                XCTAssertTrue(GameRules.canPlay(card: card, on: topCard, gameState: engine.state), 
+                             "AI chose unplayable card: \(card) on \(topCard)")
+            }
         default:
             XCTFail("AI should play a card when valid options exist")
         }
@@ -704,8 +616,8 @@ final class GameFlowTests: XCTestCase {
             Player(id: "ai3", name: "AI Hard", isAI: true, aiSkillLevel: .hard)
         ]
         
-        var engine = GameEngine(players: players)
-        let aiCoordinator = AITurnCoordinator(engine: engine)
+        let engine = GameEngine(players: players)
+        _ = AITurnCoordinator(engine: engine)
         
         // Deal cards
         engine.dealCards()
@@ -745,21 +657,29 @@ final class GameFlowTests: XCTestCase {
                     if index >= 0 && index < currentPlayer.hand.cards.count {
                         let played = engine.playCard(at: index, by: currentPlayerIndex)
                         if played {
-                            // If we just played an Ace, nominate the suit
                             if let suit = nominateSuit, engine.state.needsSuitNomination {
                                 engine.nominateSuit(suit)
                             }
                             engine.endTurn()
-                        } else {
-                            let card = currentPlayer.hand.cards[index]
-                            print("AI failed to play \(card) at index \(index) for player \(currentPlayer.name)")
-                            print("Top card: \(engine.state.discardPile.last!)")
-                            // Fall back to drawing
-                            engine.drawCard()
                         }
-                    } else {
-                        print("AI returned invalid card index \(index) for player \(currentPlayer.name) with \(currentPlayer.hand.count) cards")
-                        engine.drawCard()
+                    }
+                case .playCards(let indices, let nominateSuit):
+                    // Play multiple cards
+                    let sortedIndices = indices.sorted(by: >)
+                    var playedAny = false
+                    for idx in sortedIndices {
+                        if idx >= 0 && idx < currentPlayer.hand.cards.count {
+                            if engine.playCard(at: idx, by: currentPlayerIndex) {
+                                playedAny = true
+                            }
+                        }
+                    }
+                    if playedAny {
+                        // If we just played an Ace, nominate the suit
+                        if let suit = nominateSuit, engine.state.needsSuitNomination {
+                            engine.nominateSuit(suit)
+                        }
+                        engine.endTurn()
                     }
                     
                 case .drawCard:
@@ -854,7 +774,7 @@ final class GameFlowTests: XCTestCase {
             Player(id: "ai4", name: "AI Medium 2", isAI: true, aiSkillLevel: .medium)
         ]
         
-        var engine = GameEngine(players: players)
+        let engine = GameEngine(players: players)
         engine.dealCards()
         
         var turnCount = 0
@@ -873,6 +793,20 @@ final class GameFlowTests: XCTestCase {
             case .playCard(let index, let nominateSuit):
                 let played = engine.playCard(at: index, by: currentPlayerIndex)
                 if played {
+                    if let suit = nominateSuit, engine.state.needsSuitNomination {
+                        engine.nominateSuit(suit)
+                    }
+                    engine.endTurn()
+                }
+            case .playCards(let indices, let nominateSuit):
+                let sortedIndices = indices.sorted(by: >)
+                var playedAny = false
+                for idx in sortedIndices {
+                    if engine.playCard(at: idx, by: currentPlayerIndex) {
+                        playedAny = true
+                    }
+                }
+                if playedAny {
                     if let suit = nominateSuit, engine.state.needsSuitNomination {
                         engine.nominateSuit(suit)
                     }
@@ -909,7 +843,7 @@ final class GameFlowTests: XCTestCase {
             Player(id: "p3", name: "Player 3", isAI: true, aiSkillLevel: .medium)
         ]
         
-        var engine = GameEngine(players: players)
+        let engine = GameEngine(players: players)
         engine.dealCards()
         
         var turnCount = 0
@@ -935,6 +869,17 @@ final class GameFlowTests: XCTestCase {
                 case .playCard(let index, let nominateSuit):
                     let played = engine.playCard(at: index, by: currentPlayerIndex)
                     if played, let suit = nominateSuit, engine.state.needsSuitNomination {
+                        engine.nominateSuit(suit)
+                    }
+                case .playCards(let indices, let nominateSuit):
+                    let sortedIndices = indices.sorted(by: >)
+                    var playedAny = false
+                    for idx in sortedIndices {
+                        if engine.playCard(at: idx, by: currentPlayerIndex) {
+                            playedAny = true
+                        }
+                    }
+                    if playedAny, let suit = nominateSuit, engine.state.needsSuitNomination {
                         engine.nominateSuit(suit)
                     }
                 case .drawCard, .drawCards(_):
@@ -987,50 +932,7 @@ final class GameFlowTests: XCTestCase {
         while engine.state.gameStatus == .playing && turnCount < 200 {
             turnCount += 1
             
-            let currentPlayerIndex = engine.state.currentPlayerIndex
-            let currentPlayer = engine.state.players[currentPlayerIndex]
-            
-            // Execute turn
-            if currentPlayer.isAI {
-                let aiPlayer = AIPlayer(skillLevel: currentPlayer.aiSkillLevel ?? .medium)
-                let decision = aiPlayer.decideMove(for: currentPlayer, gameState: engine.state)
-                
-                switch decision {
-                case .playCard(let index, let nominateSuit):
-                    let played = engine.playCard(at: index, by: currentPlayerIndex)
-                    if played {
-                        if let suit = nominateSuit, engine.state.needsSuitNomination {
-                            engine.nominateSuit(suit)
-                        }
-                        engine.endTurn()
-                    } else {
-                        engine.drawCard()
-                    }
-                case .drawCard, .drawCards(_):
-                    engine.drawCard()
-                }
-            } else {
-                // Human player - try to play valid cards
-                var played = false
-                if let topCard = engine.state.discardPile.last {
-                    for (index, card) in currentPlayer.hand.cards.enumerated() {
-                        if GameRules.canPlay(card: card, on: topCard, gameState: engine.state) {
-                            played = engine.playCard(at: index, by: currentPlayerIndex)
-                            if played && card.rank == .ace && engine.state.needsSuitNomination {
-                                engine.nominateSuit(.hearts)
-                            }
-                            if played {
-                                engine.endTurn()
-                            }
-                            break
-                        }
-                    }
-                }
-                
-                if !played {
-                    engine.drawCard()
-                }
-            }
+            GameTestHelper.executeTurn(for: &engine)
             
             // Check progress
             let currentTotalCards = engine.state.players.reduce(0) { $0 + $1.hand.count }

@@ -37,4 +37,27 @@ final class PlayerTests: XCTestCase {
         XCTAssertEqual(player.hand.count, 2)
         XCTAssertFalse(player.hand.isEmpty)
     }
+    
+    func testAIPlayerSkillLevel() {
+        // Human player should have nil skill level
+        let human = Player(id: "1", name: "Human")
+        XCTAssertNil(human.aiSkillLevel)
+        
+        // AI player without specified skill level defaults to medium
+        let defaultAI = Player(id: "2", name: "AI", isAI: true)
+        XCTAssertEqual(defaultAI.aiSkillLevel, .medium)
+        
+        // AI player with specified skill level
+        let easyAI = Player(id: "3", name: "Easy AI", isAI: true, aiSkillLevel: .easy)
+        XCTAssertEqual(easyAI.aiSkillLevel, .easy)
+        
+        let hardAI = Player(id: "4", name: "Hard AI", isAI: true, aiSkillLevel: .hard)
+        XCTAssertEqual(hardAI.aiSkillLevel, .hard)
+    }
+    
+    func testNonAIPlayerIgnoresSkillLevel() {
+        // Even if skill level is provided, non-AI players should have nil
+        let human = Player(id: "1", name: "Human", isAI: false, aiSkillLevel: .hard)
+        XCTAssertNil(human.aiSkillLevel)
+    }
 }

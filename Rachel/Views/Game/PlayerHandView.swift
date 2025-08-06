@@ -44,10 +44,17 @@ struct PlayerHandView: View {
                     onPlayCards: {
                         // Play all selected cards in order
                         let sortedIndices = selectedCardIndices.sorted(by: >)  // Play from highest index first
+                        var playedAnyCard = false
                         for index in sortedIndices {
-                            _ = engine.playCard(at: index, by: 0)
+                            if engine.playCard(at: index, by: 0) {
+                                playedAnyCard = true
+                            }
                         }
                         selectedCardIndices = []
+                        // End turn after playing cards (unless we need suit nomination)
+                        if playedAnyCard && !engine.state.needsSuitNomination {
+                            engine.endTurn()
+                        }
                     },
                     onDrawCard: {
                         engine.drawCard()
@@ -107,12 +114,32 @@ struct HandCardsView: View {
     let onDrawCard: () -> Void
     let pendingPickups: Int
     
+    private var dynamicSpacing: CGFloat {
+        // Simple approach: always overlap cards if more than 5
+        switch cards.count {
+        case 0...1:
+            return 0
+        case 2...4:
+            return -10  // Slight overlap
+        case 5...7:
+            return -35  // Moderate overlap
+        case 8...10:
+            return -45  // More overlap
+        case 11...15:
+            return -55  // Heavy overlap
+        default:
+            return -60  // Maximum overlap
+        }
+    }
+    
     var hasPlayableCards: Bool {
         cards.contains { canPlayCard($0) }
     }
     
     var buttonState: ButtonState {
-        if !selectedIndices.isEmpty {
+        if !isPlayerTurn {
+            return .notYourTurn
+        } else if !selectedIndices.isEmpty {
             return .playCards(selectedIndices.count)
         } else if pendingPickups > 0 {
             return .drawPendingCards(pendingPickups)
@@ -128,6 +155,7 @@ struct HandCardsView: View {
         case drawPendingCards(Int)
         case drawCard
         case selectCards
+        case notYourTurn
         
         var text: String {
             switch self {
@@ -139,6 +167,8 @@ struct HandCardsView: View {
                 return "Draw Card"
             case .selectCards:
                 return "Select Cards"
+            case .notYourTurn:
+                return "⏳ Waiting..."
             }
         }
         
@@ -150,6 +180,8 @@ struct HandCardsView: View {
                 return "plus.rectangle.fill"
             case .selectCards:
                 return "hand.point.up.fill"
+            case .notYourTurn:
+                return "clock"
             }
         }
         
@@ -163,12 +195,14 @@ struct HandCardsView: View {
                 return .orange
             case .selectCards:
                 return .gray
+            case .notYourTurn:
+                return .gray
             }
         }
         
         var isEnabled: Bool {
             switch self {
-            case .selectCards:
+            case .selectCards, .notYourTurn:
                 return false
             default:
                 return true
@@ -176,11 +210,10 @@ struct HandCardsView: View {
         }
     }
     
+    
     var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: -25) {
-                Spacer(minLength: 0)
-                ForEach(Array(cards.enumerated()), id: \.element.id) { index, card in
+        HStack(spacing: dynamicSpacing) {
+            ForEach(Array(cards.enumerated()), id: \.element.id) { index, card in
                     let canPlay = isPlayerTurn && canPlayCard(card)
                     let isSelected = selectedIndices.contains(index)
                     
@@ -199,29 +232,29 @@ struct HandCardsView: View {
                     
                     ZStack {
                         CardView(card: card)
-                            .frame(height: 91)
+                            .frame(height: 105)
                         
                         if !canAddToSelection {
                             RoundedRectangle(cornerRadius: 6)
                                 .fill(Color.gray.opacity(0.5))
-                                .frame(height: 91)
+                                .frame(height: 105)
                                 .aspectRatio(5/7, contentMode: .fit)
                         }
                         
                         if isSelected {
                             RoundedRectangle(cornerRadius: 6)
                                 .strokeBorder(Color.green.opacity(0.6), lineWidth: 3)
-                                .frame(height: 91)
+                                .frame(height: 105)
                                 .aspectRatio(5/7, contentMode: .fit)
                         } else if canAddToSelection {
                             RoundedRectangle(cornerRadius: 6)
                                 .strokeBorder(Color.yellow.opacity(0.4), lineWidth: 2)
-                                .frame(height: 91)
+                                .frame(height: 105)
                                 .aspectRatio(5/7, contentMode: .fit)
                         }
                     }
                     .scaleEffect(isSelected ? 1.05 : (canPlay ? 1.0 : 0.95))
-                    .offset(y: isSelected ? -20 : 0)
+                    .offset(y: isSelected ? -25 : 0)
                     .shadow(
                         color: canPlay ? .yellow.opacity(0.3) : .black.opacity(0.1),
                         radius: canPlay ? 6 : 2,
@@ -242,17 +275,14 @@ struct HandCardsView: View {
                         .disabled(!isPlayerTurn)
                         .animation(.easeInOut(duration: 0.25), value: canPlay)
                         .animation(.easeInOut(duration: 0.15), value: isSelected)
-                }
-                Spacer(minLength: 0)
             }
-            .onChange(of: cards.count) { _ in
-                selectedIndices = []  // Clear selection when hand changes
-            }
-            .padding(.horizontal, 50)
-            .padding(.top, 30)
-            .padding(.bottom, 8)
         }
-        .padding(.horizontal, 10)
+        .onChange(of: cards.count) {
+            selectedIndices = []  // Clear selection when hand changes
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 15)
+        .padding(.bottom, 8)
         
         // Action button (always visible to prevent layout shift)
         Button(action: {
@@ -261,8 +291,8 @@ struct HandCardsView: View {
                 onPlayCards()
             case .drawPendingCards, .drawCard:
                 onDrawCard()
-            case .selectCards:
-                break // No action for disabled state
+            case .selectCards, .notYourTurn:
+                break // No action for disabled states
             }
         }) {
             HStack(spacing: 8) {
@@ -284,7 +314,7 @@ struct HandCardsView: View {
                     )
             )
         }
-        .disabled(!buttonState.isEnabled)
+        .disabled(!buttonState.isEnabled || !isPlayerTurn)
         .padding(.top, 10)
     }
 }
@@ -294,7 +324,7 @@ struct HandCardsView: View {
         Player(id: "1", name: "You"),
         Player(id: "2", name: "Computer", isAI: true)
     ]
-    var engine = GameEngine(players: players)
+    let engine = GameEngine(players: players)
     engine.dealCards()
     
     return ZStack {

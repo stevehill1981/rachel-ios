@@ -35,22 +35,9 @@ class GameEngine: ObservableObject {
         }
         
         // Deal first card to discard pile
-        // Keep dealing until we get a non-special card
-        var firstCard: Card?
-        while firstCard == nil {
-            if let card = state.deck.deal() {
-                if ![.two, .jack, .queen, .ace].contains(card.rank) {
-                    firstCard = card
-                }
-                // If it's a special card, we'll just try again (card goes back to bottom of deck conceptually)
-            } else {
-                // Deck is empty? This shouldn't happen with proper setup
-                break
-            }
-        }
-        
-        if let validFirstCard = firstCard {
-            state.discardPile.append(validFirstCard)
+        // Special cards are allowed but their effects don't apply for the first card
+        if let firstCard = state.deck.deal() {
+            state.discardPile.append(firstCard)
         }
         
         state.gameStatus = .playing

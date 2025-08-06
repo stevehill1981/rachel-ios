@@ -32,7 +32,7 @@ final class GameEngineTests: XCTestCase {
     }
     
     func testDealCards() {
-        var engine = createTestEngine(playerCount: 3)
+        let engine = createTestEngine(playerCount: 3)
         engine.dealCards()
         
         // Each player should have 7 cards
@@ -53,7 +53,7 @@ final class GameEngineTests: XCTestCase {
     // MARK: - Basic Play
     
     func testPlayValidCard() {
-        var engine = createTestEngine()
+        let engine = createTestEngine()
         engine.dealCards()
         
         // Set up a known game state
@@ -74,7 +74,7 @@ final class GameEngineTests: XCTestCase {
     }
     
     func testCannotPlayInvalidCard() {
-        var engine = createTestEngine()
+        let engine = createTestEngine()
         engine.dealCards()
         
         // Set up a known game state
@@ -95,7 +95,7 @@ final class GameEngineTests: XCTestCase {
     }
     
     func testCannotPlayOutOfTurn() {
-        var engine = createTestEngine()
+        let engine = createTestEngine()
         engine.dealCards()
         
         let topCard = Card(rank: .five, suit: .hearts)
@@ -115,7 +115,7 @@ final class GameEngineTests: XCTestCase {
     // MARK: - Turn Management
     
     func testEndTurnAdvancesPlayer() {
-        var engine = createTestEngine(playerCount: 3)
+        let engine = createTestEngine(playerCount: 3)
         engine.dealCards()
         
         XCTAssertEqual(engine.state.currentPlayerIndex, 0)
@@ -131,7 +131,7 @@ final class GameEngineTests: XCTestCase {
     }
     
     func testEndTurnWithReverse() {
-        var engine = createTestEngine(playerCount: 3)
+        let engine = createTestEngine(playerCount: 3)
         engine.dealCards()
         
         // Start at player 0, going clockwise
@@ -155,7 +155,7 @@ final class GameEngineTests: XCTestCase {
     // MARK: - Special Effects
     
     func testTwoEffect() {
-        var engine = createTestEngine()
+        let engine = createTestEngine()
         engine.dealCards()
         
         let topCard = Card(rank: .five, suit: .hearts)
@@ -192,7 +192,7 @@ final class GameEngineTests: XCTestCase {
     }
     
     func testQueenReversal() {
-        var engine = createTestEngine(playerCount: 4)
+        let engine = createTestEngine(playerCount: 4)
         engine.dealCards()
         
         let topCard = Card(rank: .five, suit: .hearts)
@@ -215,7 +215,7 @@ final class GameEngineTests: XCTestCase {
     // MARK: - Win Conditions
     
     func testPlayerFinishing() {
-        var engine = createTestEngine(playerCount: 3)
+        let engine = createTestEngine(playerCount: 3)
         engine.dealCards()
         
         // Empty player 1's hand
@@ -242,7 +242,7 @@ final class GameEngineTests: XCTestCase {
     }
     
     func testGameEnd() {
-        var engine = createTestEngine(playerCount: 3)
+        let engine = createTestEngine(playerCount: 3)
         engine.dealCards()
         
         // Players 0 and 1 finish
@@ -265,7 +265,7 @@ final class GameEngineTests: XCTestCase {
     // MARK: - Suit Nomination
     
     func testAceNomination() {
-        var engine = createTestEngine()
+        let engine = createTestEngine()
         engine.dealCards()
         
         let topCard = Card(rank: .five, suit: .hearts)

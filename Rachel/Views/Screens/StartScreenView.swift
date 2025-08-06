@@ -38,9 +38,9 @@ struct StartScreenView: View {
                 
                 Spacer(minLength: 10)
                 
-                // Decorative animated cards
-                DecorativeCardsView()
-                    .frame(height: 100)
+                // Decorative animated cards - 3D circle
+                DecorativeCardsView(style: .circle3D)
+                    .frame(height: 200)
                     .padding(.vertical, 10)
                 
                 Spacer(minLength: 10)

@@ -9,6 +9,7 @@ import SwiftUI
 
 struct PlayersView: View {
     @ObservedObject var engine: GameEngine
+    @ObservedObject var aiCoordinator: AITurnCoordinator
     
     var body: some View {
         GeometryReader { geometry in
@@ -25,7 +26,8 @@ struct PlayersView: View {
                     PlayerIndicatorView(
                         player: player,
                         isCurrentPlayer: index == engine.state.currentPlayerIndex,
-                        cardCount: player.hand.count
+                        cardCount: player.hand.count,
+                        isThinking: aiCoordinator.aiThinkingPlayerIndex == index
                     )
                     .position(
                         playerPosition(
@@ -70,19 +72,24 @@ struct PlayersView: View {
     }
 }
 
-#Preview {
-    let players = [
-        Player(id: "1", name: "You"),
-        Player(id: "2", name: "Alex", isAI: true),
-        Player(id: "3", name: "Sam", isAI: true),
-        Player(id: "4", name: "Jamie", isAI: true)
-    ]
-    var engine = GameEngine(players: players)
-    engine.dealCards()
-    
-    return ZStack {
-        BaizeBackground()
-        PlayersView(engine: engine)
+struct PlayersView_Previews: PreviewProvider {
+    static var previews: some View {
+        let players = [
+            Player(id: "1", name: "You"),
+            Player(id: "2", name: "Alex", isAI: true),
+            Player(id: "3", name: "Sam", isAI: true),
+            Player(id: "4", name: "Jamie", isAI: true)
+        ]
+        let engine = GameEngine(players: players)
+        let aiCoordinator = AITurnCoordinator(engine: engine)
+        
+        return ZStack {
+            BaizeBackground()
+            PlayersView(engine: engine, aiCoordinator: aiCoordinator)
+                .onAppear {
+                    engine.dealCards()
+                }
+        }
     }
 }
 

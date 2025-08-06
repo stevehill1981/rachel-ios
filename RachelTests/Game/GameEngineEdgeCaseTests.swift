@@ -21,7 +21,7 @@ final class GameEngineEdgeCaseTests: XCTestCase {
     // MARK: - Deck Reshuffling
     
     func testDeckReshufflingWhenEmpty() {
-        var engine = createTestEngine()
+        let engine = createTestEngine()
         engine.dealCards()
         
         // Empty the deck but keep some cards in discard
@@ -66,7 +66,7 @@ final class GameEngineEdgeCaseTests: XCTestCase {
     // MARK: - Skip Edge Cases
     
     func testMultipleSkipsWithTwoPlayers() {
-        var engine = createTestEngine(playerCount: 2)
+        let engine = createTestEngine(playerCount: 2)
         engine.dealCards()
         
         engine.updateState { state in
@@ -79,7 +79,7 @@ final class GameEngineEdgeCaseTests: XCTestCase {
     }
     
     func testSkipLastRemainingPlayer() {
-        var engine = createTestEngine(playerCount: 3)
+        let engine = createTestEngine(playerCount: 3)
         engine.dealCards()
         
         // Players 0 and 1 have finished
@@ -99,7 +99,7 @@ final class GameEngineEdgeCaseTests: XCTestCase {
     // MARK: - Reversal Edge Cases
     
     func testReversalWithTwoPlayers() {
-        var engine = createTestEngine(playerCount: 2)
+        let engine = createTestEngine(playerCount: 2)
         engine.dealCards()
         
         // With 2 players, reversal has no effect on turn order
@@ -117,7 +117,7 @@ final class GameEngineEdgeCaseTests: XCTestCase {
     // MARK: - Complex Pickup Scenarios
     
     func testRedJackFullyCountersBlackJacks() {
-        var engine = createTestEngine()
+        let engine = createTestEngine()
         engine.dealCards()
         
         let topCard = Card(rank: .jack, suit: .clubs)
@@ -144,7 +144,7 @@ final class GameEngineEdgeCaseTests: XCTestCase {
     }
     
     func testCannotMixPickupTypesInSameTurn() {
-        var engine = createTestEngine()
+        let engine = createTestEngine()
         engine.dealCards()
         
         let two = Card(rank: .two, suit: .hearts)
@@ -165,7 +165,7 @@ final class GameEngineEdgeCaseTests: XCTestCase {
     // MARK: - Ace Edge Cases
     
     func testAceOnAce() {
-        var engine = createTestEngine()
+        let engine = createTestEngine()
         engine.dealCards()
         
         let ace1 = Card(rank: .ace, suit: .hearts)
@@ -184,7 +184,7 @@ final class GameEngineEdgeCaseTests: XCTestCase {
     }
     
     func testMustFollowNominatedSuit() {
-        var engine = createTestEngine()
+        let engine = createTestEngine()
         engine.dealCards()
         
         let topCard = Card(rank: .ace, suit: .hearts)
@@ -207,7 +207,7 @@ final class GameEngineEdgeCaseTests: XCTestCase {
     // MARK: - Game End Edge Cases
     
     func testLastPlayerAutoFinishes() {
-        var engine = createTestEngine(playerCount: 2)
+        let engine = createTestEngine(playerCount: 2)
         engine.dealCards()
         
         // Player 0 finishes
@@ -222,7 +222,7 @@ final class GameEngineEdgeCaseTests: XCTestCase {
     }
     
     func testNoInfiniteLoopWithAllPlayersFinished() {
-        var engine = createTestEngine(playerCount: 2)
+        let engine = createTestEngine(playerCount: 2)
         engine.dealCards()
         
         // Somehow all players are marked finished (edge case)
@@ -238,7 +238,7 @@ final class GameEngineEdgeCaseTests: XCTestCase {
     // MARK: - Seven Card Stacking
     
     func testStackingMultipleSevens() {
-        var engine = createTestEngine(playerCount: 4)
+        let engine = createTestEngine(playerCount: 4)
         engine.dealCards()
         
         let topCard = Card(rank: .seven, suit: .hearts)

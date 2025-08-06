@@ -45,9 +45,7 @@ struct ContentView: View {
         ]
         
         // Setup game with new players
-        gameEngine.updateState { state in
-            state = GameState(players: players)
-        }
+        gameEngine.setupNewGame(players: players)
         gameEngine.dealCards()
         
         isGameActive = true
