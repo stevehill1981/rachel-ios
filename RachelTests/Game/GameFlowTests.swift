@@ -476,33 +476,10 @@ final class GameFlowTests: XCTestCase {
                 
             case .playCards(let indices, let nominateSuit):
                 print("AI decides to play cards at indices \(indices)")
-                var playedAny = false
-                var remainingIndices = indices
                 
-                // Play cards one by one, adjusting indices as we go
-                var isFirst = true
-                while !remainingIndices.isEmpty {
-                    let idx = remainingIndices.removeFirst()
-                    if idx < currentPlayer.hand.cards.count {
-                        let card = currentPlayer.hand.cards[idx]
-                        if isFirst {
-                            print("Attempting to play: \(card)")
-                            let topCard = engine.state.discardPile.last!
-                            let canPlay = GameRules.canPlay(card: card, on: topCard, gameState: engine.state)
-                            print("Can play check: \(canPlay)")
-                            isFirst = false
-                        }
-                        if engine.playCard(at: idx, by: currentPlayerIndex) {
-                            playedAny = true
-                            playCount += 1
-                            // Adjust remaining indices since we removed a card
-                            remainingIndices = remainingIndices.map { $0 > idx ? $0 - 1 : $0 }
-                        }
-                    }
-                }
-                
-                if playedAny {
+                if engine.playMultipleCards(indices: indices, by: currentPlayerIndex) {
                     print("SUCCESS: Cards played")
+                    playCount += indices.count
                     if let suit = nominateSuit, engine.state.needsSuitNomination {
                         engine.nominateSuit(suit)
                         print("Nominated suit: \(suit)")
@@ -670,21 +647,8 @@ final class GameFlowTests: XCTestCase {
                         }
                     }
                 case .playCards(let indices, let nominateSuit):
-                    // Play cards in order specified by AI
-                    var playedAny = false
-                    var remainingIndices = indices
-                    
-                    while !remainingIndices.isEmpty {
-                        let idx = remainingIndices.removeFirst()
-                        if idx >= 0 && idx < currentPlayer.hand.cards.count {
-                            if engine.playCard(at: idx, by: currentPlayerIndex) {
-                                playedAny = true
-                                // Adjust remaining indices
-                                remainingIndices = remainingIndices.map { $0 > idx ? $0 - 1 : $0 }
-                            }
-                        }
-                    }
-                    if playedAny {
+                    // Play cards using the new method
+                    if engine.playMultipleCards(indices: indices, by: currentPlayerIndex) {
                         // If we just played an Ace, nominate the suit
                         if let suit = nominateSuit, engine.state.needsSuitNomination {
                             engine.nominateSuit(suit)
@@ -809,18 +773,7 @@ final class GameFlowTests: XCTestCase {
                     engine.endTurn()
                 }
             case .playCards(let indices, let nominateSuit):
-                var playedAny = false
-                var remainingIndices = indices
-                
-                while !remainingIndices.isEmpty {
-                    let idx = remainingIndices.removeFirst()
-                    if engine.playCard(at: idx, by: currentPlayerIndex) {
-                        playedAny = true
-                        // Adjust remaining indices
-                        remainingIndices = remainingIndices.map { $0 > idx ? $0 - 1 : $0 }
-                    }
-                }
-                if playedAny {
+                if engine.playMultipleCards(indices: indices, by: currentPlayerIndex) {
                     if let suit = nominateSuit, engine.state.needsSuitNomination {
                         engine.nominateSuit(suit)
                     }
@@ -886,19 +839,10 @@ final class GameFlowTests: XCTestCase {
                         engine.nominateSuit(suit)
                     }
                 case .playCards(let indices, let nominateSuit):
-                    var playedAny = false
-                    var remainingIndices = indices
-                    
-                    while !remainingIndices.isEmpty {
-                        let idx = remainingIndices.removeFirst()
-                        if engine.playCard(at: idx, by: currentPlayerIndex) {
-                            playedAny = true
-                            // Adjust remaining indices
-                            remainingIndices = remainingIndices.map { $0 > idx ? $0 - 1 : $0 }
+                    if engine.playMultipleCards(indices: indices, by: currentPlayerIndex) {
+                        if let suit = nominateSuit, engine.state.needsSuitNomination {
+                            engine.nominateSuit(suit)
                         }
-                    }
-                    if playedAny, let suit = nominateSuit, engine.state.needsSuitNomination {
-                        engine.nominateSuit(suit)
                     }
                 case .drawCard, .drawCards(_):
                     engine.drawCard()

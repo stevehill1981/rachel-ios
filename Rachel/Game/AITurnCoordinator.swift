@@ -109,22 +109,8 @@ class AITurnCoordinator: ObservableObject {
             }
             
         case .playCards(let indices, let nominatedSuit):
-            // Play cards in the order specified by the AI
-            // The AI ensures the first card is playable on the current top card
-            var playedAny = false
-            var remainingIndices = indices
-            
-            // Play cards one by one, adjusting indices as we go
-            while !remainingIndices.isEmpty {
-                let index = remainingIndices.removeFirst()
-                if engine.playCard(at: index, by: engine.state.currentPlayerIndex) {
-                    playedAny = true
-                    // Adjust remaining indices since we removed a card
-                    remainingIndices = remainingIndices.map { $0 > index ? $0 - 1 : $0 }
-                }
-            }
-            
-            if playedAny {
+            // Play multiple cards at once
+            if engine.playMultipleCards(indices: indices, by: engine.state.currentPlayerIndex) {
                 if let suit = nominatedSuit, engine.state.needsSuitNomination {
                     engine.nominateSuit(suit)
                 }

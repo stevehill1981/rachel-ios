@@ -42,24 +42,16 @@ struct PlayerHandView: View {
                     },
                     selectedIndices: $selectedCardIndices,
                     onPlayCards: {
-                        // Play all selected cards in order
-                        var remainingIndices = selectedCardIndices.sorted()  // Start with lowest index
-                        var playedAnyCard = false
-                        
-                        // Play cards one by one, adjusting indices as we go
-                        while !remainingIndices.isEmpty {
-                            let index = remainingIndices.removeFirst()
-                            if engine.playCard(at: index, by: 0) {
-                                playedAnyCard = true
-                                // Adjust remaining indices since we removed a card
-                                remainingIndices = remainingIndices.map { $0 > index ? $0 - 1 : $0 }
+                        // Play all selected cards using the new method
+                        if engine.playMultipleCards(indices: selectedCardIndices, by: 0) {
+                            // Clear selection
+                            selectedCardIndices = []
+                            // End turn after playing cards (unless we need suit nomination)
+                            if !engine.state.needsSuitNomination {
+                                engine.endTurn()
                             }
-                        }
-                        
-                        selectedCardIndices = []
-                        // End turn after playing cards (unless we need suit nomination)
-                        if playedAnyCard && !engine.state.needsSuitNomination {
-                            engine.endTurn()
+                        } else {
+                            print("Failed to play selected cards")
                         }
                     },
                     onDrawCard: {

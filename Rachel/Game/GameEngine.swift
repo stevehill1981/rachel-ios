@@ -91,6 +91,51 @@ class GameEngine: ObservableObject {
         return false
     }
     
+    func playMultipleCards(indices: [Int], by playerIndex: Int) -> Bool {
+        guard playerIndex == state.currentPlayerIndex else { return false }
+        guard !indices.isEmpty else { return false }
+        
+        // Sort indices to play from lowest to highest
+        let sortedIndices = indices.sorted()
+        
+        // Validate first card can be played normally
+        guard sortedIndices[0] < state.players[playerIndex].hand.cards.count else { return false }
+        let firstCard = state.players[playerIndex].hand.cards[sortedIndices[0]]
+        guard let topCard = state.discardPile.last else { return false }
+        guard GameRules.canPlay(card: firstCard, on: topCard, gameState: state) else { return false }
+        
+        // Validate all cards have the same rank
+        let rank = firstCard.rank
+        for index in sortedIndices {
+            guard index < state.players[playerIndex].hand.cards.count else { return false }
+            if state.players[playerIndex].hand.cards[index].rank != rank {
+                return false
+            }
+        }
+        
+        // Play all cards
+        var remainingIndices = sortedIndices
+        var playedAny = false
+        
+        while !remainingIndices.isEmpty {
+            let index = remainingIndices.removeFirst()
+            if let playedCard = state.players[playerIndex].hand.removeCard(at: index) {
+                state.discardPile.append(playedCard)
+                
+                // Apply card effect
+                if let effect = CardEffectFactory.effect(for: playedCard) {
+                    effect.apply(to: &state)
+                }
+                
+                playedAny = true
+                // Adjust remaining indices since we removed a card
+                remainingIndices = remainingIndices.map { $0 > index ? $0 - 1 : $0 }
+            }
+        }
+        
+        return playedAny
+    }
+    
     // MARK: - Turn Management
     
     func endTurn() {
