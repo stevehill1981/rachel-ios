@@ -61,11 +61,11 @@ struct PlayersRowView: View {
         }
     }
     
-    // Arrange players based on direction for better visual flow
+    // Keep players in fixed positions regardless of direction
     private func playersInVisualOrder() -> [(Player, Int)] {
         let players = engine.state.players.enumerated().map { ($0.element, $0.offset) }
         
-        // Always show human player (index 0) first, then others in play order
+        // Always show human player (index 0) first, then others in order
         var ordered: [(Player, Int)] = []
         
         // Add human player first
@@ -73,32 +73,19 @@ struct PlayersRowView: View {
             ordered.append(humanPlayer)
         }
         
-        // Add other players in play direction order starting from player 1
-        if engine.state.direction == .clockwise {
-            for i in 1..<players.count {
-                if let player = players.first(where: { $0.1 == i }) {
-                    ordered.append(player)
-                }
-            }
-        } else {
-            // Counter-clockwise: reverse the order of AI players
-            for i in stride(from: players.count - 1, through: 1, by: -1) {
-                if let player = players.first(where: { $0.1 == i }) {
-                    ordered.append(player)
-                }
+        // Add other players in their fixed order (1, 2, 3, etc.)
+        for i in 1..<players.count {
+            if let player = players.first(where: { $0.1 == i }) {
+                ordered.append(player)
             }
         }
         
         return ordered
     }
     
-    // Z-index based on direction - players "later" in play order appear on top
+    // Z-index for overlapping - rightmost players appear on top
     private func zIndexForPlayer(at visualIndex: Int) -> Double {
-        if engine.state.direction == .clockwise {
-            return Double(visualIndex)
-        } else {
-            return Double(engine.state.players.count - visualIndex)
-        }
+        return Double(visualIndex)
     }
 }
 

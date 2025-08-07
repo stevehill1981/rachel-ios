@@ -278,7 +278,7 @@ struct HandCardsView: View {
         .onChange(of: cards.count) {
             selectedIndices = []  // Clear selection when hand changes
         }
-        .padding(.horizontal, 20)
+        .padding(.horizontal, 40) // Increased padding for better centering
         .padding(.top, 15)
         .padding(.bottom, 8)
         
