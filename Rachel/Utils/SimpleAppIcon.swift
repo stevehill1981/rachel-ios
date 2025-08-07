@@ -64,7 +64,6 @@ struct SimpleAppIcon: View {
     }
 }
 
-#Preview {
+#Preview("Simple App Icon", traits: .fixedLayout(width: 1024, height: 1024)) {
     SimpleAppIcon()
-        .previewLayout(.fixed(width: 1024, height: 1024))
 }

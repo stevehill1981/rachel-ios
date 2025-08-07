@@ -11,26 +11,37 @@ struct ContentView: View {
     @StateObject private var gameEngine = GameEngine(players: [])
     @State private var isGameActive = false
     @State private var showCustomGame = false
+    @State private var showMultiplayer = false
     
     var body: some View {
         Group {
             if isGameActive {
-                GameView(engine: gameEngine) {
+                GameViewAdaptive(engine: gameEngine) {
                     // Exit game
                     isGameActive = false
                 }
             } else if showCustomGame {
-                CustomGameView(
+                CustomGameViewAdaptive(
                     isPresented: $showCustomGame,
                     onStartGame: { players in
                         startCustomGame(with: players)
                     }
                 )
+            } else if showMultiplayer {
+                MultiplayerLobbyView(
+                    isPresented: $showMultiplayer,
+                    onStartGame: { players in
+                        startCustomGame(with: players)
+                    }
+                )
             } else {
-                StartScreenView(
+                StartScreenAdaptive(
                     onQuickPlay: startQuickPlay,
                     onCustomGame: {
                         showCustomGame = true
+                    },
+                    onMultiplayer: {
+                        showMultiplayer = true
                     }
                 )
             }

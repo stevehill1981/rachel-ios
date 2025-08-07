@@ -10,6 +10,7 @@ import SwiftUI
 struct PlayerHandView: View {
     @ObservedObject var engine: GameEngine
     @State private var selectedCardIndices: [Int] = []
+    @Environment(\.verticalSizeClass) var verticalSizeClass
     
     var currentPlayer: Player? {
         guard engine.state.currentPlayerIndex < engine.state.players.count else { return nil }
@@ -24,13 +25,19 @@ struct PlayerHandView: View {
         engine.state.players.first
     }
     
+    var isLandscape: Bool {
+        verticalSizeClass == .compact
+    }
+    
     var body: some View {
         VStack(spacing: 10) {
-            // Turn indicator
-            TurnIndicatorView(
-                isPlayerTurn: isPlayerTurn,
-                currentPlayerName: currentPlayer?.name ?? "Unknown"
-            )
+            // Turn indicator - hide in landscape to save space
+            if !isLandscape {
+                TurnIndicatorView(
+                    isPlayerTurn: isPlayerTurn,
+                    currentPlayerName: currentPlayer?.name ?? "Unknown"
+                )
+            }
             
             // Player's cards
             if let player = humanPlayer {
@@ -41,27 +48,28 @@ struct PlayerHandView: View {
                         engine.canPlay(card: card, playerIndex: 0)
                     },
                     selectedIndices: $selectedCardIndices,
-                    onPlayCards: {
-                        // Play all selected cards using the new method
-                        if engine.playMultipleCards(indices: selectedCardIndices, by: 0) {
-                            // Clear selection
-                            selectedCardIndices = []
-                            // End turn after playing cards (unless we need suit nomination)
-                            if !engine.state.needsSuitNomination {
-                                engine.endTurn()
-                            }
-                        } else {
-                            print("Failed to play selected cards")
-                        }
-                    },
-                    onDrawCard: {
-                        engine.drawCard()
-                        selectedCardIndices = []  // Clear selection after drawing
-                    },
+                    onPlayCards: playCards,
+                    onDrawCard: drawCard,
                     pendingPickups: engine.state.pendingPickups
                 )
             }
         }
+    }
+    
+    private func playCards() {
+        if engine.playMultipleCards(indices: selectedCardIndices, by: 0) {
+            selectedCardIndices = []
+            if !engine.state.needsSuitNomination {
+                engine.endTurn()
+            }
+        } else {
+            print("Failed to play selected cards")
+        }
+    }
+    
+    private func drawCard() {
+        engine.drawCard()
+        selectedCardIndices = []
     }
 }
 
@@ -111,22 +119,43 @@ struct HandCardsView: View {
     let onPlayCards: () -> Void
     let onDrawCard: () -> Void
     let pendingPickups: Int
+    @Environment(\.verticalSizeClass) var verticalSizeClass
+    
+    private var isLandscape: Bool {
+        verticalSizeClass == .compact
+    }
     
     private var dynamicSpacing: CGFloat {
-        // Simple approach: always overlap cards if more than 5
-        switch cards.count {
-        case 0...1:
-            return 0
-        case 2...4:
-            return -10  // Slight overlap
-        case 5...7:
-            return -35  // Moderate overlap
-        case 8...10:
-            return -45  // More overlap
-        case 11...15:
-            return -55  // Heavy overlap
-        default:
-            return -60  // Maximum overlap
+        // More spacing in landscape since we have more horizontal room
+        if isLandscape {
+            switch cards.count {
+            case 0...1:
+                return 0
+            case 2...6:
+                return -5   // Minimal overlap
+            case 7...10:
+                return -25  // Light overlap
+            case 11...15:
+                return -40  // Moderate overlap
+            default:
+                return -50  // Maximum overlap
+            }
+        } else {
+            // Portrait spacing
+            switch cards.count {
+            case 0...1:
+                return 0
+            case 2...4:
+                return -10  // Slight overlap
+            case 5...7:
+                return -35  // Moderate overlap
+            case 8...10:
+                return -45  // More overlap
+            case 11...15:
+                return -55  // Heavy overlap
+            default:
+                return -60  // Maximum overlap
+            }
         }
     }
     
@@ -210,79 +239,111 @@ struct HandCardsView: View {
     
     
     var body: some View {
-        HStack(spacing: dynamicSpacing) {
-            ForEach(Array(cards.enumerated()), id: \.element.id) { index, card in
-                    let canPlay = isPlayerTurn && canPlayCard(card)
-                    let isSelected = selectedIndices.contains(index)
-                    
-                    // Check if this card can be added to current selection
-                    let canAddToSelection: Bool = {
-                        if selectedIndices.isEmpty {
-                            // First card must be playable (matches top card by suit or rank)
-                            return canPlay
-                        } else {
-                            // Subsequent cards must match the rank of the first selected card
-                            let firstSelectedIndex = selectedIndices.first!
-                            let firstSelectedCard = cards[firstSelectedIndex]
-                            return card.rank == firstSelectedCard.rank
-                        }
-                    }()
-                    
-                    ZStack {
-                        CardView(card: card)
-                            .frame(height: 105)
-                        
-                        if !canAddToSelection {
-                            RoundedRectangle(cornerRadius: 6)
-                                .fill(Color.gray.opacity(0.5))
-                                .frame(height: 105)
-                                .aspectRatio(5/7, contentMode: .fit)
-                        }
-                        
-                        if isSelected {
-                            RoundedRectangle(cornerRadius: 6)
-                                .strokeBorder(Color.green.opacity(0.6), lineWidth: 3)
-                                .frame(height: 105)
-                                .aspectRatio(5/7, contentMode: .fit)
-                        } else if canAddToSelection {
-                            RoundedRectangle(cornerRadius: 6)
-                                .strokeBorder(Color.yellow.opacity(0.4), lineWidth: 2)
-                                .frame(height: 105)
-                                .aspectRatio(5/7, contentMode: .fit)
-                        }
+        if isLandscape {
+            // Landscape: cards and button side by side
+            HStack(spacing: 16) {
+                // Cards
+                HStack(spacing: dynamicSpacing) {
+                    ForEach(Array(cards.enumerated()), id: \.element.id) { index, card in
+                        cardView(for: card, at: index)
                     }
-                    .scaleEffect(isSelected ? 1.05 : (canPlay ? 1.0 : 0.95))
-                    .offset(y: isSelected ? -25 : 0)
-                    .shadow(
-                        color: canPlay ? .yellow.opacity(0.3) : .black.opacity(0.1),
-                        radius: canPlay ? 6 : 2,
-                        x: 0,
-                        y: canPlay ? 4 : 1
-                    )
-                        .onTapGesture {
-                            if isPlayerTurn {
-                                if isSelected {
-                                    // Deselect if already selected
-                                    selectedIndices.removeAll { $0 == index }
-                                } else if canAddToSelection {
-                                    // Add to selection if valid
-                                    selectedIndices.append(index)
-                                }
-                            }
-                        }
-                        .disabled(!isPlayerTurn)
-                        .animation(.easeInOut(duration: 0.25), value: canPlay)
-                        .animation(.easeInOut(duration: 0.15), value: isSelected)
+                }
+                .onChange(of: cards.count) { _, _ in
+                    selectedIndices = []  // Clear selection when hand changes
+                }
+                .padding(.leading, 40)
+                
+                Spacer()
+                
+                // Action button on the right
+                actionButton
+                    .padding(.trailing, 40)
+            }
+        } else {
+            // Portrait: vertical layout
+            VStack {
+                HStack(spacing: dynamicSpacing) {
+                    ForEach(Array(cards.enumerated()), id: \.element.id) { index, card in
+                        cardView(for: card, at: index)
+                    }
+                }
+                .onChange(of: cards.count) { _, _ in
+                    selectedIndices = []  // Clear selection when hand changes
+                }
+                .padding(.horizontal, 40)
+                
+                // Action button below cards
+                actionButton
+                    .padding(.top, 10)
             }
         }
-        .onChange(of: cards.count) {
-            selectedIndices = []  // Clear selection when hand changes
-        }
-        .padding(.horizontal, 40) // Increased padding for better centering
-        .padding(.top, 15)
-        .padding(.bottom, 8)
+    }
+    
+    private func cardView(for card: Card, at index: Int) -> some View {
+        let canPlay = isPlayerTurn && canPlayCard(card)
+        let isSelected = selectedIndices.contains(index)
         
-        // Action button (always visible to prevent layout shift)
+        // Check if this card can be added to current selection
+        let canAddToSelection: Bool = {
+            if selectedIndices.isEmpty {
+                // First card must be playable (matches top card by suit or rank)
+                return canPlay
+            } else {
+                // Subsequent cards must match the rank of the first selected card
+                let firstSelectedIndex = selectedIndices.first!
+                let firstSelectedCard = cards[firstSelectedIndex]
+                return card.rank == firstSelectedCard.rank
+            }
+        }()
+        
+        return ZStack {
+            CardView(card: card)
+                .frame(height: isLandscape ? 90 : 105)
+            
+            if !canAddToSelection {
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(Color.gray.opacity(0.5))
+                    .frame(height: isLandscape ? 90 : 105)
+                    .aspectRatio(5/7, contentMode: .fit)
+            }
+            
+            if isSelected {
+                RoundedRectangle(cornerRadius: 6)
+                    .strokeBorder(Color.green.opacity(0.6), lineWidth: 3)
+                    .frame(height: isLandscape ? 90 : 105)
+                    .aspectRatio(5/7, contentMode: .fit)
+            } else if canAddToSelection {
+                RoundedRectangle(cornerRadius: 6)
+                    .strokeBorder(Color.yellow.opacity(0.4), lineWidth: 2)
+                    .frame(height: isLandscape ? 90 : 105)
+                    .aspectRatio(5/7, contentMode: .fit)
+            }
+        }
+        .scaleEffect(isSelected ? 1.05 : (canPlay ? 1.0 : 0.95))
+        .offset(y: isSelected ? (isLandscape ? -15 : -25) : 0)
+        .shadow(
+            color: canPlay ? .yellow.opacity(0.3) : .black.opacity(0.1),
+            radius: canPlay ? 6 : 2,
+            x: 0,
+            y: canPlay ? 4 : 1
+        )
+        .onTapGesture {
+            if isPlayerTurn {
+                if isSelected {
+                    // Deselect if already selected
+                    selectedIndices.removeAll { $0 == index }
+                } else if canAddToSelection {
+                    // Add to selection if valid
+                    selectedIndices.append(index)
+                }
+            }
+        }
+        .disabled(!isPlayerTurn)
+        .animation(.easeInOut(duration: 0.25), value: canPlay)
+        .animation(.easeInOut(duration: 0.15), value: isSelected)
+    }
+    
+    private var actionButton: some View {
         Button(action: {
             switch buttonState {
             case .playCards:
@@ -313,7 +374,6 @@ struct HandCardsView: View {
             )
         }
         .disabled(!buttonState.isEnabled || !isPlayerTurn)
-        .padding(.top, 10)
     }
 }
 

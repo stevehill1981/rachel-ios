@@ -65,9 +65,8 @@ struct AppIconView: View {
     }
 }
 
-#Preview {
+#Preview("App Icon", traits: .fixedLayout(width: 1024, height: 1024)) {
     AppIconView()
-        .previewLayout(.fixed(width: 1024, height: 1024))
 }
 
 // Helper to export icon - run this in a playground or test

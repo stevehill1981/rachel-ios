@@ -48,7 +48,7 @@ struct RulesView: View {
                             .foregroundColor(.primary)
                         
                         specialCardRow(rank: "2", effect: "Next player picks up 2 cards")
-                        specialCardRow(rank: "8", effect: "Next player skips their turn")
+                        specialCardRow(rank: "7", effect: "Next player skips their turn")
                         specialCardRow(rank: "J", suit: "♠️♣️", effect: "Next player picks up 5 cards")
                         specialCardRow(rank: "J", suit: "♥️♦️", effect: "Cancels black jack pickups")
                         specialCardRow(rank: "Q", effect: "Reverses play direction")

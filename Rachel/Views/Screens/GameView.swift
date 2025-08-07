@@ -63,7 +63,7 @@ struct GameView: View {
         .onDisappear {
             aiCoordinator.stopMonitoring()
         }
-        .onChange(of: engine.state.currentPlayerIndex) {
+        .onChange(of: engine.state.currentPlayerIndex) { _, _ in
             aiCoordinator.checkForAITurn()
         }
         .statusBarHidden()
@@ -103,27 +103,53 @@ struct GameView: View {
 struct TopBarView: View {
     @ObservedObject var engine: GameEngine
     let onExit: () -> Void
+    @Environment(\.verticalSizeClass) var verticalSizeClass
     
     var turnNumber: Int {
         // Use the actual turn count from game state
         engine.state.turnCount + 1 // +1 because we want to show "Turn 1" not "Turn 0"
     }
     
+    var isLandscape: Bool {
+        verticalSizeClass == .compact
+    }
+    
     var body: some View {
         ZStack {
             // Background that extends to top edge
-            VStack(spacing: 0) {
-                Color.black
-                    .frame(height: 50) // Extra height to cover safe area
-                Rectangle()
-                    .fill(Color.black)
-                    .overlay(
-                        Rectangle()
-                            .strokeBorder(Color.gray.opacity(0.1), lineWidth: 0.5)
+            if !isLandscape {
+                VStack(spacing: 0) {
+                    Color.black
+                        .frame(height: 50) // Extra height to cover safe area
+                    Rectangle()
+                        .fill(Color.black)
+                        .overlay(
+                            Rectangle()
+                                .strokeBorder(Color.gray.opacity(0.1), lineWidth: 0.5)
+                        )
+                        .shadow(color: Color.black.opacity(0.3), radius: 4, x: 0, y: 2)
+                }
+                .ignoresSafeArea(edges: .top)
+            } else {
+                // Simpler background for landscape with rounded bottom corners
+                UnevenRoundedRectangle(
+                    topLeadingRadius: 0,
+                    bottomLeadingRadius: 12,
+                    bottomTrailingRadius: 12,
+                    topTrailingRadius: 0
+                )
+                .fill(Color.black)
+                .overlay(
+                    UnevenRoundedRectangle(
+                        topLeadingRadius: 0,
+                        bottomLeadingRadius: 12,
+                        bottomTrailingRadius: 12,
+                        topTrailingRadius: 0
                     )
-                    .shadow(color: Color.black.opacity(0.3), radius: 4, x: 0, y: 2)
+                    .strokeBorder(Color.gray.opacity(0.1), lineWidth: 0.5)
+                )
+                .shadow(color: Color.black.opacity(0.3), radius: 4, x: 0, y: 2)
             }
-            .ignoresSafeArea(edges: .top)
             
             // Content
             HStack(spacing: 0) {
@@ -136,7 +162,7 @@ struct TopBarView: View {
                         .fontWeight(.semibold)
                 }
                 .foregroundColor(.white)
-                .padding(.leading, 20)
+                .padding(.leading, isLandscape ? 40 : 20)
                 
                 Spacer()
                 
@@ -150,13 +176,13 @@ struct TopBarView: View {
                             .font(.caption)
                     }
                     .foregroundColor(.white)
-                    .padding(.trailing, 20)
+                    .padding(.trailing, isLandscape ? 40 : 20)
                 }
             }
-            .padding(.vertical, 12)
-            .padding(.top, 8) // Position content below safe area
+            .padding(.vertical, isLandscape ? 8 : 12)
+            .padding(.top, isLandscape ? 0 : 8) // No extra padding in landscape
         }
-        .frame(height: 54) // Taller to fully cover Dynamic Island
+        .frame(height: isLandscape ? 40 : 54) // Shorter in landscape
     }
 }
 
