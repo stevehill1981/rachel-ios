@@ -29,9 +29,9 @@ struct GameView: View {
                 
                 // Game table area
                 VStack {
-                    // Adaptive player layout based on player count
-                    PlayersAdaptiveView(engine: engine, aiCoordinator: aiCoordinator)
-                        .frame(maxHeight: 220)
+                    // Players in horizontal row with overlap
+                    PlayersRowView(engine: engine, aiCoordinator: aiCoordinator)
+                        .frame(height: 120)
                     
                     // Game info below players
                     GameInfoView(
