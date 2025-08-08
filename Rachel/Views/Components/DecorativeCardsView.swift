@@ -478,28 +478,32 @@ struct SparkleEffect: View {
 
 #Preview("Cascade Style") {
     ZStack {
-        BaizeBackground()
+        Color(red: 0.0, green: 0.3, blue: 0.1)
+            .ignoresSafeArea()
         DecorativeCardsView(style: .cascade)
     }
 }
 
 #Preview("Fan Style") {
     ZStack {
-        BaizeBackground()
+        Color(red: 0.0, green: 0.3, blue: 0.1)
+            .ignoresSafeArea()
         DecorativeCardsView(style: .fan)
     }
 }
 
 #Preview("Stack Style") {
     ZStack {
-        BaizeBackground()
+        Color(red: 0.0, green: 0.3, blue: 0.1)
+            .ignoresSafeArea()
         DecorativeCardsView(style: .stack)
     }
 }
 
 #Preview("3D Circle") {
     ZStack {
-        BaizeBackground()
+        Color(red: 0.0, green: 0.3, blue: 0.1)
+            .ignoresSafeArea()
         DecorativeCardsView(style: .circle3D)
             .frame(height: 200)
     }
@@ -507,7 +511,8 @@ struct SparkleEffect: View {
 
 #Preview("Spiral Style") {
     ZStack {
-        BaizeBackground()
+        Color(red: 0.0, green: 0.3, blue: 0.1)
+            .ignoresSafeArea()
         DecorativeCardsView(style: .spiral)
     }
 }

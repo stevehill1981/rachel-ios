@@ -35,19 +35,20 @@ struct GameViewAdaptive: View {
             BaizeBackground()
             
             VStack(spacing: 0) {
-                // Top bar with exit button
                 if isLandscape && !isIPad {
-                    TopBarView(engine: engine, onExit: onExit)
-                        .frame(height: 40) // Shorter in landscape
-                        .ignoresSafeArea(.container, edges: .horizontal) // Full width
                     landscapeGameLayout
                 } else {
-                    TopBarView(engine: engine, onExit: onExit)
                     portraitGameLayout
                 }
             }
+            
+            // Top bar overlaid on top
+            VStack {
+                TopBarView(engine: engine, onExit: onExit)
+                Spacer()
+            }
         }
-        .ignoresSafeArea(.container, edges: .top)
+        .ignoresSafeArea()
         .onAppear {
             aiCoordinator.startMonitoring()
         }

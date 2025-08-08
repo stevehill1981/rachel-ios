@@ -378,19 +378,20 @@ struct HandCardsView: View {
 }
 
 #Preview {
-    let players = [
-        Player(id: "1", name: "You"),
-        Player(id: "2", name: "Computer", isAI: true)
-    ]
-    let engine = GameEngine(players: players)
-    engine.dealCards()
-    
-    return ZStack {
+    ZStack {
         BaizeBackground()
         VStack {
             Spacer()
-            PlayerHandView(engine: engine)
-                .padding()
+            PlayerHandView(engine: {
+                let players = [
+                    Player(id: "1", name: "You"),
+                    Player(id: "2", name: "Computer", isAI: true)
+                ]
+                let engine = GameEngine(players: players)
+                engine.dealCards()
+                return engine
+            }())
+            .padding()
         }
     }
 }

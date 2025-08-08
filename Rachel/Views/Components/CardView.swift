@@ -186,5 +186,5 @@ extension Suit {
         }
         .padding()
     }
-    .background(BaizeBackground())
+    .background(Color(red: 0.0, green: 0.3, blue: 0.1).ignoresSafeArea())
 }

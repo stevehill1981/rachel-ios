@@ -252,7 +252,7 @@ struct ArrowBetweenPlayers: View {
 
 #Preview("4 Players Clockwise") {
     ZStack {
-        BaizeBackground()
+        Color(red: 0.0, green: 0.3, blue: 0.1).ignoresSafeArea()
         
         VStack {
             let players = [
@@ -281,7 +281,7 @@ struct ArrowBetweenPlayers: View {
 
 #Preview("8 Players Counter-clockwise") {
     ZStack {
-        BaizeBackground()
+        Color(red: 0.0, green: 0.3, blue: 0.1).ignoresSafeArea()
         
         VStack {
             let players8 = [

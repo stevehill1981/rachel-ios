@@ -234,15 +234,16 @@ struct GameInfoView: View {
 }
 
 #Preview {
-    let players = [
-        Player(id: "1", name: "You"),
-        Player(id: "2", name: "Computer", isAI: true)
-    ]
-    let engine = GameEngine(players: players)
-    engine.dealCards()
-    
-    return ZStack {
+    ZStack {
         BaizeBackground()
-        CenterPlayAreaView(engine: engine)
+        CenterPlayAreaView(engine: {
+            let players = [
+                Player(id: "1", name: "You"),
+                Player(id: "2", name: "Computer", isAI: true)
+            ]
+            let engine = GameEngine(players: players)
+            engine.dealCards()
+            return engine
+        }())
     }
 }

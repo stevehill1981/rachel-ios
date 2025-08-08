@@ -9,9 +9,12 @@ import SwiftUI
 
 @main
 struct RachelApp: App {
+    @StateObject private var themeManager = ThemeManager.shared
+    
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .themed()
         }
     }
 }

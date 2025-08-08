@@ -115,7 +115,7 @@ struct PlayerIndicatorView: View {
 
 #Preview {
     ZStack {
-        BaizeBackground()
+        Color(red: 0.0, green: 0.3, blue: 0.1).ignoresSafeArea()
         HStack(spacing: 20) {
             PlayerIndicatorView(
                 player: Player(id: "1", name: "Alex"),

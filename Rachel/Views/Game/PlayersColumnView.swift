@@ -203,7 +203,7 @@ struct VerticalArrowBetweenPlayers: View {
 
 #Preview {
     ZStack {
-        BaizeBackground()
+        Color(red: 0.0, green: 0.3, blue: 0.1).ignoresSafeArea()
         
         HStack {
             let players = [

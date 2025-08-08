@@ -13,6 +13,7 @@ struct StartScreenAdaptive: View {
     let onMultiplayer: () -> Void
     
     @State private var showRules = false
+    @State private var showThemes = false
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
     @Environment(\.verticalSizeClass) var verticalSizeClass
     
@@ -29,16 +30,20 @@ struct StartScreenAdaptive: View {
             // Background
             BaizeBackground()
             
-            if isLandscape && !isIPad {
-                // Landscape iPhone layout
+            if isLandscape {
+                // Landscape layout
                 landscapeLayout
             } else {
-                // Portrait or iPad layout
+                // Portrait layout
                 portraitLayout
             }
         }
         .sheet(isPresented: $showRules) {
             RulesView()
+        }
+        .sheet(isPresented: $showThemes) {
+            ThemeSelectionView()
+                .environmentObject(ThemeManager.shared)
         }
         .statusBarHidden()
         .persistentSystemOverlays(.hidden)
@@ -64,17 +69,29 @@ struct StartScreenAdaptive: View {
             
             // Decorative cards
             DecorativeCardsView(style: .circle3D)
-                .frame(height: isIPad ? 300 : 200)
-                .padding(.vertical, isIPad ? 20 : 10)
+                .frame(height: 150)
+                .padding(.vertical, 10)
             
             // Buttons
             buttonsView
             
             Spacer()
             
-            // Credits
-            creditsView
-                .padding(.bottom, isIPad ? 30 : 10)
+            // Settings button and credits
+            HStack(alignment: .center) {
+                Button(action: { showThemes = true }) {
+                    Image(systemName: "paintbrush.fill")
+                        .font(.title2)
+                        .foregroundColor(.white.opacity(0.7))
+                        .padding(10)
+                        .background(Circle().fill(Color.white.opacity(0.1)))
+                }
+                
+                creditsView
+            }
+            .padding(.horizontal)
+            
+
         }
         .padding(.horizontal)
     }
@@ -90,13 +107,23 @@ struct StartScreenAdaptive: View {
                 
                 DecorativeCardsView(style: .circle3D)
                     .frame(maxHeight: 150)
+                
+                HStack(spacing: 8) {
+                    Button(action: { showThemes = true }) {
+                        Image(systemName: "paintbrush.fill")
+                            .font(.title2)
+                            .foregroundColor(.white.opacity(0.7))
+                            .padding(10)
+                            .background(Circle().fill(Color.white.opacity(0.1)))
+                    }
+                    creditsView
+                }
             }
             .frame(maxWidth: .infinity)
             
             // Right side - Buttons
             VStack(spacing: 15) {
                 buttonsView
-                creditsView
             }
             .frame(maxWidth: .infinity)
         }
@@ -177,8 +204,11 @@ struct StartScreenAdaptive: View {
     }
     
     var creditsView: some View {
-        VStack(spacing: 2) {
+        HStack(alignment: .center, spacing: 4) {
             Text("Created by Steve Hill")
+                .font(.caption2)
+                .foregroundColor(.white.opacity(0.6))
+            Text(" | ")
                 .font(.caption2)
                 .foregroundColor(.white.opacity(0.6))
             Text("Built with ❤️ and SwiftUI")
@@ -188,7 +218,7 @@ struct StartScreenAdaptive: View {
     }
 }
 
-#Preview("iPhone Portrait") {
+#Preview("iPhone Portrait", traits: .portrait) {
     StartScreenAdaptive(
         onQuickPlay: { print("Quick play") },
         onCustomGame: { print("Custom game") },
@@ -204,7 +234,15 @@ struct StartScreenAdaptive: View {
     )
 }
 
-#Preview("iPad") {
+#Preview("iPad", traits: .portrait) {
+    StartScreenAdaptive(
+        onQuickPlay: { print("Quick play") },
+        onCustomGame: { print("Custom game") },
+        onMultiplayer: { print("Multiplayer") }
+    )
+}
+
+#Preview("iPad Landscape", traits: .landscapeLeft) {
     StartScreenAdaptive(
         onQuickPlay: { print("Quick play") },
         onCustomGame: { print("Custom game") },
